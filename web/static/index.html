@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RiftLens 对局复盘</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='10' y='10' width='44' height='44' rx='6' transform='rotate(45 32 32)' fill='%23143a3c'/%3E%3Cpath d='M14 50 50 14' stroke='%23e3b04b' stroke-width='5'/%3E%3Ccircle cx='38' cy='38' r='9' fill='none' stroke='%23f4ead2' stroke-width='4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@700;900&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* RiftLens — sidebar (conversations + profile) | chat | agent activity rail. Rift-teal ground, hextech-gold accent. */
+:root{
+  --bg:#eef1ee; --bg-2:#e3e8e4; --panel:#fbfcfa; --ink:#14201f; --muted:#5a6866; --rule:#d2dad5;
+  --brand:#143a3c; --brand-2:#1e5457; --side:#10302f; --side-ink:#e6efec; --side-muted:#93aaa5; --side-hover:rgba(255,255,255,.07);
+  --gold:#b98a2c; --gold-soft:#f3e7cc; --gold-ink:#1c1406;
+  --user:#143a3c; --user-ink:#eef5f3; --tool:#5b4ab2; --tool-soft:#ebe7fa; --ok:#2c7a4b; --ok-soft:#e1f1e7;
+  --err:#b23b3b; --err-soft:#f8e3e2; --shadow:0 1px 2px rgba(20,32,31,.06),0 8px 24px -12px rgba(20,32,31,.18);
+  --sans:"Noto Sans SC","PingFang SC","Hiragino Sans GB",system-ui,sans-serif;
+  --display:"Noto Serif SC","Songti SC",serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b1414; --bg-2:#0f1b1b; --panel:#122020; --ink:#e4ece9; --muted:#8fa19c; --rule:#21302f;
+  --brand:#0e2a2b; --brand-2:#1c4a4c; --side:#081111; --side-ink:#e2ebe8; --side-muted:#7f9692; --side-hover:rgba(255,255,255,.06);
+  --gold:#e3b04b; --gold-soft:#2c2412; --gold-ink:#1a1206;
+  --user:#1f4a4c; --user-ink:#eef5f3; --tool:#a996ee; --tool-soft:#211d36; --ok:#5fc38b; --ok-soft:#14301f;
+  --err:#ec7d7d; --err-soft:#3a1d1d; --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b1414; --bg-2:#0f1b1b; --panel:#122020; --ink:#e4ece9; --muted:#8fa19c; --rule:#21302f;
+  --brand:#0e2a2b; --brand-2:#1c4a4c; --side:#081111; --side-ink:#e2ebe8; --side-muted:#7f9692; --side-hover:rgba(255,255,255,.06);
+  --gold:#e3b04b; --gold-soft:#2c2412; --gold-ink:#1a1206;
+  --user:#1f4a4c; --user-ink:#eef5f3; --tool:#a996ee; --tool-soft:#211d36; --ok:#5fc38b; --ok-soft:#14301f;
+  --err:#ec7d7d; --err-soft:#3a1d1d; --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6); color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.65 var(--sans);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+.app{height:100%;display:grid;grid-template-columns:268px minmax(0,1fr) 330px}
+
+/* ---------- sidebar ---------- */
+.side{background:var(--side);color:var(--side-ink);display:flex;flex-direction:column;min-height:0;
+  padding-top:env(safe-area-inset-top,0px);padding-left:env(safe-area-inset-left,0px);
+  background-image:radial-gradient(120% 60% at 0% 0%,rgba(227,176,75,.12),transparent 60%)}
+.brand{display:flex;align-items:center;gap:10px;padding:16px 16px 12px}
+.brand svg{width:34px;height:34px;flex:none;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+.brand .name{font:900 19px/1 var(--display);letter-spacing:.02em}
+.brand .name b{color:var(--gold)}
+.brand .sub{font-size:11.5px;color:var(--side-muted);margin-top:3px}
+.newchat{margin:4px 12px 10px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--gold);color:var(--gold-ink);border:0;border-radius:10px;height:38px;font-weight:700;cursor:pointer}
+.side h3{font:500 11px var(--sans);letter-spacing:.14em;color:var(--side-muted);margin:8px 18px 6px}
+.convs{flex:1;overflow-y:auto;padding:0 8px 8px;display:flex;flex-direction:column;gap:2px}
+.conv{display:flex;align-items:center;gap:8px;border-radius:8px;padding:8px 8px 8px 10px;cursor:pointer;min-width:0;border:1px solid transparent}
+.conv:hover{background:var(--side-hover)}
+.conv.active{background:rgba(227,176,75,.14);border-color:rgba(227,176,75,.35)}
+.conv .tt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13.5px}
+.conv .mt{font:10.5px var(--mono);color:var(--side-muted)}
+.conv .del{opacity:0;background:transparent;border:0;color:var(--side-muted);cursor:pointer;border-radius:6px;width:24px;height:24px;display:grid;place-items:center}
+.conv:hover .del,.conv:focus-within .del{opacity:1}
+.conv .del:hover{color:#ec7d7d;background:rgba(236,125,125,.12)}
+.conv input{flex:1;min-width:0;background:rgba(0,0,0,.25);border:1px solid var(--gold);color:var(--side-ink);border-radius:6px;padding:2px 6px;font:13.5px var(--sans)}
+.side .none{color:var(--side-muted);font-size:13px;padding:6px 12px}
+.me{display:flex;align-items:center;gap:10px;margin:8px;padding:10px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);cursor:pointer;text-align:left;
+  margin-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+.me:hover{background:rgba(255,255,255,.09)}
+.me .info{flex:1;min-width:0}
+.me .nm{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.me .rid{font:11.5px var(--mono);color:var(--side-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.avatar{width:34px;height:34px;flex:none;border-radius:10px;display:grid;place-items:center;overflow:hidden;font:700 14px var(--sans);color:#1a1206;background:var(--gold);box-shadow:var(--shadow)}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.avatar.bot{background:var(--brand)}
+.avatar.bot svg{width:24px;height:24px}
+
+/* ---------- chat ---------- */
+.chat{display:flex;flex-direction:column;min-height:0}
+.chathead{display:flex;align-items:center;gap:12px;padding:12px 22px;padding-top:calc(12px + env(safe-area-inset-top,0px));border-bottom:1px solid var(--rule)}
+.chathead h1{margin:0;font:700 16px var(--sans);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mode{display:flex;align-items:center;gap:7px;font:12px var(--mono);color:var(--muted);border:1px solid var(--rule);border-radius:999px;padding:3px 11px;white-space:nowrap}
+.mode i{width:8px;height:8px;border-radius:50%;background:#8a9a96}
+.mode.live i{background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
+.iconbtn{background:transparent;border:1px solid var(--rule);border-radius:8px;width:32px;height:32px;display:grid;place-items:center;cursor:pointer;color:var(--muted)}
+.iconbtn:hover{color:var(--ink);border-color:var(--muted)}
+.menu{display:none}
+.log{flex:1;overflow-y:auto;padding:24px 22px 16px;display:flex;flex-direction:column;gap:18px}
+.log>*{width:100%;max-width:860px;margin:0 auto}
+.welcome{background:var(--panel);border:1px solid var(--rule);border-radius:16px;padding:26px 26px 22px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:16px;position:relative;overflow:hidden}
+.welcome::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border:2px solid var(--gold-soft);transform:rotate(45deg);border-radius:20px;pointer-events:none}
+.welcome h2{margin:0;font:900 25px/1.3 var(--display);text-wrap:balance;max-width:20em}
+.welcome p{margin:0;color:var(--muted);max-width:42em}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.card{text-align:left;background:var(--bg);border:1px solid var(--rule);border-radius:12px;padding:12px 14px;cursor:pointer;display:flex;flex-direction:column;gap:4px;transition:border-color .15s,transform .15s}
+.card:hover{border-color:var(--gold);transform:translateY(-1px)}
+.card .t{font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px}
+.card .t span{font-size:11px;font-family:var(--mono);color:var(--gold);background:var(--gold-soft);border-radius:4px;padding:0 6px}
+.card .d{font-size:13px;color:var(--muted)}
+.setup{display:flex;align-items:center;gap:10px;font-size:13.5px;background:var(--gold-soft);border-radius:10px;padding:10px 12px}
+.setup button{margin-left:auto;background:var(--gold);color:var(--gold-ink);border:0;border-radius:8px;padding:5px 12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.msg{display:flex;gap:12px;align-items:flex-start}
+.msg.user{flex-direction:row-reverse}
+.bubble{min-width:0;max-width:calc(100% - 46px)}
+.msg.user .bubble{background:var(--user);color:var(--user-ink);border-radius:16px 4px 16px 16px;padding:10px 15px;box-shadow:var(--shadow);white-space:pre-wrap}
+.msg.bot .bubble{background:var(--panel);border:1px solid var(--rule);border-radius:4px 16px 16px 16px;padding:14px 18px;box-shadow:var(--shadow);overflow-wrap:anywhere;flex:1}
+.bubble h3{font-family:var(--display);font-size:16.5px;margin:16px 0 6px;line-height:1.35}
+.bubble .body>:first-child{margin-top:0}
+.bubble hr{border:0;border-top:1px solid var(--rule);margin:14px 0}
+.bubble p{margin:7px 0}.bubble ul,.bubble ol{margin:6px 0;padding-left:22px}.bubble li{margin:3px 0}
+.bubble code{font-family:var(--mono);font-size:.86em;background:var(--bg);border:1px solid var(--rule);border-radius:5px;padding:0 5px}
+.bubble i{color:var(--muted)}
+.bubble .cite{font-family:var(--mono);font-size:11px;color:var(--tool);background:var(--tool-soft);border-radius:4px;padding:0 5px;white-space:nowrap}
+.tbl{overflow-x:auto;margin:10px 0;border:1px solid var(--rule);border-radius:10px}
+.tbl table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{padding:7px 10px;border-bottom:1px solid var(--rule);text-align:left;white-space:nowrap}
+.tbl th{background:var(--bg);font-size:12px;color:var(--muted);font-weight:500}
+.tbl tr:last-child td{border-bottom:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips:empty{display:none}
+.chip{display:inline-flex;align-items:center;gap:5px;font:11.5px var(--mono);background:var(--tool-soft);color:var(--tool);border-radius:999px;padding:2px 9px}
+.chip::before{content:"";width:6px;height:6px;border-radius:2px;background:currentColor;transform:rotate(45deg)}
+.chip.err{background:var(--err-soft);color:var(--err)}
+.chip.mem{background:var(--gold-soft);color:var(--gold)}
+.meta{margin-top:10px;font:11.5px var(--mono);color:var(--muted)}
+.thinking{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13.5px}
+.pulse{width:16px;height:16px;flex:none;border:2px solid var(--gold);border-radius:3px;animation:spin 1.6s ease-in-out infinite}
+@keyframes spin{0%{transform:rotate(45deg) scale(.85);opacity:.6}50%{transform:rotate(225deg) scale(1);opacity:1}100%{transform:rotate(405deg) scale(.85);opacity:.6}}
+.composer{padding:12px 22px calc(14px + env(safe-area-inset-bottom,0px))}
+form.ask{max-width:860px;margin:0 auto;display:flex;gap:10px;align-items:flex-end;background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:8px 8px 8px 14px;box-shadow:var(--shadow)}
+form.ask:focus-within{border-color:var(--gold)}
+textarea{flex:1;resize:none;border:0;outline:0;background:transparent;color:var(--ink);font:15px/1.55 var(--sans);padding:6px 0;max-height:160px}
+.send{background:var(--gold);color:var(--gold-ink);border:0;border-radius:10px;height:38px;padding:0 16px;font-weight:700;display:flex;align-items:center;gap:6px;cursor:pointer}
+.send:disabled{opacity:.45;cursor:default}
+.hint{max-width:860px;margin:6px auto 0;font-size:12px;color:var(--muted);text-align:center}
+
+/* ---------- activity rail ---------- */
+aside.rail{border-left:1px solid var(--rule);background:var(--bg-2);display:flex;flex-direction:column;min-height:0;padding-right:env(safe-area-inset-right,0px)}
+aside.rail header{padding:14px 18px 10px;padding-top:calc(14px + env(safe-area-inset-top,0px));display:flex;align-items:baseline;gap:8px}
+aside.rail h2{margin:0;font:700 12.5px var(--sans);letter-spacing:.12em;color:var(--muted)}
+aside.rail small{font:11px var(--mono);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.steps{flex:1;overflow-y:auto;padding:4px 18px 18px}
+.step{position:relative;padding:0 0 14px 22px;font-size:13px;min-width:0}
+.step::before{content:"";position:absolute;left:5px;top:7px;bottom:-7px;width:1px;background:var(--rule)}
+.step:last-child::before{display:none}
+.step .dot{position:absolute;left:0;top:4px;width:11px;height:11px;border-radius:3px;transform:rotate(45deg);background:var(--rule)}
+.step.tool_call .dot{background:var(--tool)}.step.tool_result .dot{background:var(--ok)}.step.tool_result.err .dot{background:var(--err)}
+.step.note .dot,.step.memory .dot{background:var(--gold)}.step.usage .dot,.step.done .dot{background:var(--brand-2)}
+.step .k{font-weight:500}
+.step .v{font:11.5px/1.5 var(--mono);color:var(--muted);overflow-wrap:anywhere;margin-top:2px}
+.usage-card{margin-top:4px;background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:10px 12px;display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}
+.usage-card div{display:flex;flex-direction:column}
+.usage-card b{font:600 15px var(--mono)}
+.usage-card span{font-size:11px;color:var(--muted)}
+.empty{color:var(--muted);font-size:13px;padding:6px 0}
+
+/* ---------- profile dialog ---------- */
+dialog{border:0;padding:0;border-radius:18px;background:var(--panel);color:var(--ink);width:min(620px,calc(100vw - 32px));max-height:calc(100vh - 40px);box-shadow:0 30px 80px -20px rgba(0,0,0,.5)}
+dialog::backdrop{background:rgba(6,14,14,.55);backdrop-filter:blur(2px)}
+.dlg{display:flex;flex-direction:column;max-height:calc(100vh - 40px)}
+.dlg header{padding:18px 22px 12px;border-bottom:1px solid var(--rule);display:flex;align-items:center}
+.dlg header h2{margin:0;font:900 20px var(--display);flex:1}
+.dlg .content{overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:18px}
+.dlg footer{padding:12px 22px;border-top:1px solid var(--rule);display:flex;gap:10px;align-items:center}
+.dlg footer .msgline{flex:1;font-size:13px;color:var(--muted)}
+.avatar-edit{display:flex;align-items:center;gap:16px}
+.avatar-edit .avatar{width:72px;height:72px;border-radius:18px;font-size:28px}
+.avatar-edit .ops{display:flex;flex-direction:column;gap:8px}
+.avatar-edit .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.swatch{width:22px;height:22px;border-radius:6px;border:2px solid transparent;cursor:pointer}
+.swatch.on{border-color:var(--ink)}
+.btn{background:var(--bg);border:1px solid var(--rule);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13.5px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--gold);color:var(--gold-ink);border-color:var(--gold);font-weight:700}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field.wide{grid-column:1 / -1}
+.field label{font-size:12.5px;color:var(--muted);font-weight:500}
+.field input,.field select,.field textarea{font:14px var(--sans);color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:8px;padding:8px 10px;width:100%}
+.field textarea{min-height:64px;resize:vertical;max-height:none}
+.field small{font-size:11.5px;color:var(--muted)}
+.roles{display:flex;flex-wrap:wrap;gap:6px}
+.roles label{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:999px;padding:3px 10px;cursor:pointer}
+.roles input{accent-color:var(--gold)}
+.keybox h4{margin:0 0 6px;font-size:14px;display:flex;align-items:center;gap:8px}
+.keybox .opt{font:500 11px var(--mono);color:var(--ok);background:var(--ok-soft);border-radius:4px;padding:0 6px}
+.keybox p{margin:0 0 8px;font-size:12.5px;color:var(--muted)}
+.keybox code{font-family:var(--mono);font-size:.9em}
+.keyrow{display:flex;gap:8px}
+.keyrow input{flex:1;min-width:0;font:13px var(--mono);color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:8px;padding:8px 10px}
+.kstatus{margin-top:6px;font-size:12.5px;color:var(--muted)}
+.kstatus.ok{color:var(--ok)}.kstatus.bad{color:var(--err)}
+.keywarn{display:flex;align-items:center;gap:10px;font-size:13.5px;background:var(--tool-soft);color:var(--ink);border-radius:10px;padding:10px 12px}
+.keywarn button{margin-left:auto;background:var(--tool);color:#fff;border:0;border-radius:8px;padding:5px 12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.mems h4{margin:0 0 6px;font-size:14px}
+.mems p{margin:0 0 8px;font-size:12.5px;color:var(--muted)}
+.mem{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:1px solid var(--rule);border-radius:8px;margin-bottom:6px;font-size:13.5px}
+.mem span{flex:1}
+.mem time{font:11px var(--mono);color:var(--muted);white-space:nowrap}
+.mem button{background:transparent;border:0;color:var(--muted);cursor:pointer}
+.mem button:hover{color:var(--err)}
+details.ctx summary{cursor:pointer;font-size:12.5px;color:var(--muted)}
+details.ctx pre{white-space:pre-wrap;font:12px/1.6 var(--mono);background:var(--bg);border-radius:8px;padding:10px;margin:8px 0 0}
+
+
+/* ---------- home view ---------- */
+.home{min-height:100%;display:flex;flex-direction:column;background:var(--bg)}
+.home[hidden]{display:none!important}
+.hnav{display:flex;align-items:center;gap:12px;padding:14px max(24px,env(safe-area-inset-right,0px)) 14px max(24px,env(safe-area-inset-left,0px));padding-top:calc(14px + env(safe-area-inset-top,0px));
+  background:var(--side);color:var(--side-ink)}
+.hnav .brand{padding:0}
+.hnav .grow{flex:1}
+.hnav a{color:var(--side-muted);text-decoration:none;font-size:14px}
+.hnav a:hover{color:var(--side-ink)}
+.hero{background:var(--side);color:var(--side-ink);position:relative;overflow:hidden;
+  padding:56px max(24px,env(safe-area-inset-right,0px)) 72px max(24px,env(safe-area-inset-left,0px));
+  background-image:radial-gradient(90% 120% at 100% 0%,rgba(227,176,75,.16),transparent 55%),repeating-linear-gradient(135deg,rgba(255,255,255,.02) 0 2px,transparent 2px 16px)}
+.hero-in{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:48px;align-items:center}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.18em;color:var(--gold);text-transform:uppercase}
+.hero h1{font:900 clamp(32px,4.6vw,52px)/1.15 var(--display);margin:14px 0 16px;text-wrap:balance}
+.hero h1 em{font-style:normal;color:var(--gold)}
+.hero p.lead{font-size:17px;line-height:1.75;color:var(--side-muted);max-width:34em;margin:0 0 28px}
+.cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn-lg{display:inline-flex;align-items:center;gap:8px;border-radius:12px;height:48px;padding:0 22px;font:700 16px var(--sans);cursor:pointer;border:1px solid transparent}
+.btn-lg.primary{background:var(--gold);color:var(--gold-ink);box-shadow:0 10px 30px -10px rgba(227,176,75,.6)}
+.btn-lg.primary:hover{filter:brightness(1.05)}
+.btn-lg.ghost{background:transparent;color:var(--side-ink);border-color:rgba(255,255,255,.22)}
+.btn-lg.ghost:hover{background:rgba(255,255,255,.06)}
+.facts{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:28px;font-size:13px;color:var(--side-muted)}
+.facts b{color:var(--side-ink);font:600 15px var(--mono);margin-right:4px}
+.hero-art{position:relative;aspect-ratio:1/1;max-width:420px;width:100%;justify-self:center}
+.hero-art svg{width:100%;height:100%;display:block}
+.section{max-width:1120px;margin:0 auto;width:100%;padding:56px max(24px,env(safe-area-inset-right,0px)) 8px max(24px,env(safe-area-inset-left,0px))}
+.section h2{font:900 26px/1.3 var(--display);margin:0 0 6px}
+.section > p{color:var(--muted);margin:0 0 24px;max-width:46em}
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.feat article{background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px}
+.feat .ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--gold-soft);color:var(--gold)}
+.feat h3{margin:0;font-size:16px}
+.feat p{margin:0;font-size:14px;color:var(--muted)}
+.feat .ex{margin-top:auto;font:12px var(--mono);color:var(--tool);background:var(--tool-soft);border-radius:6px;padding:4px 8px;align-self:flex-start}
+.how{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;counter-reset:s}
+.how div{border-top:3px solid var(--gold);padding-top:12px}
+.how b{display:block;font-size:15px;margin-bottom:4px}
+.how b::before{counter-increment:s;content:counter(s) " · ";color:var(--gold);font-family:var(--mono)}
+.how span{font-size:14px;color:var(--muted)}
+.hfoot{margin-top:auto;padding:36px max(24px,env(safe-area-inset-right,0px)) calc(28px + env(safe-area-inset-bottom,0px)) max(24px,env(safe-area-inset-left,0px));text-align:center}
+.hfoot .go{margin-bottom:28px}
+.legal{max-width:760px;margin:0 auto;font-size:12px;line-height:1.7;color:var(--muted)}
+@media (max-width:860px){.hero-in{grid-template-columns:1fr}.hero-art{max-width:260px;order:-1}.how{grid-template-columns:1fr}.hnav a{display:none}}
+
+/* ---------- app view / rail toggle ---------- */
+.app[hidden]{display:none!important}
+.app.rail-off{grid-template-columns:268px minmax(0,1fr)}
+.app.rail-off aside.rail{display:none}
+#rail-toggle.on{color:var(--gold);border-color:var(--gold)}
+.rail .close{display:none}
+.brand.link{cursor:pointer}
+
+button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-visible,.conv:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+form.ask textarea:focus-visible{outline:none}
+@media (max-width:1180px){
+  .app,.app.rail-off{grid-template-columns:248px minmax(0,1fr)} aside.rail{display:none}
+  .app.rail-on aside.rail{display:flex;position:fixed;top:0;right:0;bottom:0;width:min(340px,92vw);z-index:25;box-shadow:-20px 0 40px -20px rgba(0,0,0,.5)}
+  .rail .close{display:grid;margin-left:auto}
+}
+@media (max-width:760px){
+  .app,.app.rail-off{grid-template-columns:1fr}
+  .side{position:fixed;inset:0 auto 0 0;width:min(300px,86vw);z-index:20;transform:translateX(-100%);transition:transform .2s;box-shadow:20px 0 40px -20px rgba(0,0,0,.5)}
+  .app.open .side{transform:none}
+  .menu{display:grid}
+  .fields{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="logo" viewBox="0 0 64 64">
+      <rect x="11" y="11" width="42" height="42" rx="7" transform="rotate(45 32 32)" fill="#1b4d50" stroke="#e3b04b" stroke-width="2.5"/>
+      <path d="M17 47 47 17" stroke="#e3b04b" stroke-width="4" stroke-linecap="round" opacity=".9"/>
+      <circle cx="21.5" cy="42.5" r="3" fill="#7fc4d6"/>
+      <circle cx="42.5" cy="21.5" r="3" fill="#e27c6a"/>
+      <circle cx="37" cy="37" r="8.5" fill="rgba(244,234,210,.12)" stroke="#f4ead2" stroke-width="3"/>
+      <path d="M43.5 43.5 50 50" stroke="#f4ead2" stroke-width="4" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<main class="home" id="home">
+  <nav class="hnav" aria-label="站点导航">
+    <div class="brand"><svg aria-hidden="true"><use href="#logo"/></svg>
+      <div><div class="name">Rift<b>Lens</b></div><div class="sub">英雄联盟对局复盘助手</div></div></div>
+    <div class="grow"></div>
+    <a href="#features">功能</a><a href="#how">原理</a>
+    <button class="btn-lg ghost" type="button" data-start style="height:38px;padding:0 16px;font-size:14px">开始对话</button>
+  </nav>
+  <section class="hero">
+    <div class="hero-in">
+      <div>
+        <div class="eyebrow">Post-game review agent</div>
+        <h1>每一局输赢，<em>都有证据</em></h1>
+        <p class="lead">输入 Riot ID，RiftLens 从 Riot 官方数据拉取你的对局，用确定性工具算出转折点、团战、死亡和资源，再写成带出处的复盘。还能看近期状态、查对位打法，并记住你的长期特点。</p>
+        <div class="cta">
+          <button class="btn-lg primary" type="button" data-start>开始对话
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          <button class="btn-lg ghost" type="button" id="home-profile">设置我的账号</button>
+        </div>
+        <div class="facts"><span><b>15</b>个确定性分析工具</span><span><b>≈1/50</b>工具层压缩后的上下文</span><span><b>每条</b>结论标注依据的工具或来源</span></div>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <svg viewBox="0 0 400 400">
+          <defs><linearGradient id="hg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#1b4d50"/><stop offset="1" stop-color="#123536"/></linearGradient></defs>
+          <rect x="70" y="70" width="260" height="260" rx="34" transform="rotate(45 200 200)" fill="url(#hg)" stroke="#e3b04b" stroke-width="3"/>
+          <rect x="112" y="112" width="176" height="176" rx="22" transform="rotate(45 200 200)" fill="none" stroke="rgba(244,234,210,.14)" stroke-width="2" stroke-dasharray="6 8"/>
+          <path d="M92 308 308 92" stroke="#e3b04b" stroke-width="10" stroke-linecap="round" opacity=".85"/>
+          <path d="M120 200 200 120M200 280 280 200" stroke="rgba(244,234,210,.22)" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="128" cy="272" r="13" fill="#7fc4d6"/><circle cx="272" cy="128" r="13" fill="#e27c6a"/>
+          <g fill="#f4ead2" opacity=".7"><circle cx="166" cy="236" r="4"/><circle cx="236" cy="166" r="4"/><circle cx="190" cy="252" r="3"/><circle cx="252" cy="190" r="3"/></g>
+          <circle cx="238" cy="238" r="50" fill="rgba(244,234,210,.10)" stroke="#f4ead2" stroke-width="9"/>
+          <path d="M276 276 318 318" stroke="#f4ead2" stroke-width="14" stroke-linecap="round"/>
+          <path d="M214 246l16 12 26-34" fill="none" stroke="#e3b04b" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+  <section class="section" id="features">
+    <h2>能帮你做什么</h2>
+    <p>对局数据全部来自 Riot 官方接口；数字由代码计算，模型只负责解读。知识类问题会联网查询，并标出来源和版本。</p>
+    <div class="feat">
+      <article><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></div>
+        <h3>单局复盘</h3><p>经济转折、团战切分、每次阵亡的原因、资源争夺、对线期对比，以及规则检出的失误。</p><span class="ex">复盘我最近一局</span></article>
+      <article><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5M4 19h16M8 15l4-5 3 3 5-7"/></svg></div>
+        <h3>近期状态</h3><p>最近 5 局或 10 局的胜率、赢局和输局的差别、英雄池表现，只用终局统计，几秒出结果。</p><span class="ex">我最近 10 局怎么样</span></article>
+      <article><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></div>
+        <h3>对位知识</h3><p>官方技能数据，加上数据网站的对位统计和玩家讨论，标明版本、来源和分歧。</p><span class="ex">亚索怎么打鳄鱼</span></article>
+      <article><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0-6 6c0 4 6 12 6 12s6-8 6-12a6 6 0 0 0-6-6z"/><circle cx="12" cy="9" r="2"/></svg></div>
+        <h3>长期记忆</h3><p>绑定账号后可以直接说"我"；助手会记下你的长期特点，你随时可以查看和删除。</p><span class="ex">绑定 Riot ID</span></article>
+    </div>
+  </section>
+  <section class="section" id="how">
+    <h2>怎么做到"有证据"</h2>
+    <p>和直接把数据丢给大模型不同，RiftLens 把计算和解读分开。</p>
+    <div class="how">
+      <div><b>拉取官方数据</b><span>Riot Match-v5 对局详情和逐分钟时间线，本地缓存，限流重试。</span></div>
+      <div><b>工具确定性计算</b><span>团战、转折点、阵亡、资源等由代码算出，原始约 21.5 万 token 压缩到约 4 千。</span></div>
+      <div><b>带出处的解读</b><span>每条结论标注依据的工具；数据里没有的（技能释放、插眼位置）明确说无法判断。</span></div>
+    </div>
+  </section>
+  <footer class="hfoot">
+    <div class="go"><button class="btn-lg primary" type="button" data-start>开始对话</button></div>
+    <p class="legal">RiftLens 是个人学习项目，未获得 Riot Games 的认可，不代表 Riot Games 或任何参与《英雄联盟》制作与管理的官方人员的观点或意见。Riot Games 和《英雄联盟》是 Riot Games, Inc. 的商标或注册商标。</p>
+  </footer>
+</main>
+
+<div class="app" id="app" hidden>
+  <nav class="side" aria-label="对话列表">
+    <div class="brand link" id="go-home" role="button" tabindex="0" title="返回首页">
+      <svg aria-hidden="true"><use href="#logo"/></svg>
+      <div><div class="name">Rift<b>Lens</b></div><div class="sub">英雄联盟对局复盘助手</div></div>
+    </div>
+    <button class="newchat" id="newchat" type="button">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg>新对话
+    </button>
+    <h3>历史对话</h3>
+    <div class="convs" id="convs"><div class="none">还没有对话</div></div>
+    <button class="me" id="me" type="button" aria-label="个人资料与长期记忆">
+      <div class="avatar" id="me-avatar">?</div>
+      <div class="info"><div class="nm" id="me-name">设置个人资料</div><div class="rid" id="me-rid">绑定账号后可直接说"我"</div></div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </nav>
+
+  <section class="chat">
+    <div class="chathead">
+      <button class="iconbtn menu" id="menu" type="button" aria-label="打开对话列表"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <h1 id="title">新对话</h1>
+      <span class="mode" id="mode"><i></i><span>检测中…</span></span>
+      <button class="iconbtn" id="rail-toggle" type="button" aria-label="显示或隐藏 Agent 活动" title="Agent 活动"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
+      <button class="iconbtn" id="theme" type="button" aria-label="切换深浅色"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    </div>
+    <div class="log" id="log"></div>
+    <div class="composer">
+      <form class="ask" id="form">
+        <textarea id="input" rows="1" placeholder="输入 Riot ID 或问题，绑定账号后可以直接说“我最近一局”" aria-label="消息"></textarea>
+        <button class="send" id="send" type="submit">发送 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </form>
+      <div class="hint">Enter 发送 · Shift+Enter 换行 · 数据来自 Riot API，不含技能释放、精确走位和插眼坐标</div>
+    </div>
+  </section>
+
+  <aside class="rail" aria-label="Agent 活动">
+    <header><h2>AGENT 活动</h2><small id="trace-id"></small><button class="iconbtn close" type="button" id="rail-close" aria-label="关闭">✕</button></header>
+    <div class="steps" id="steps"><div class="empty">发送问题后，这里按时间顺序显示调用的工具、返回结果、记下的记忆和 token 用量。</div></div>
+  </aside>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlg-title">
+  <form class="dlg" id="pform" method="dialog">
+    <header><h2 id="dlg-title">个人资料与设置</h2><button class="iconbtn" type="button" id="dlg-x" aria-label="关闭">✕</button></header>
+    <div class="content">
+      <div class="avatar-edit">
+        <div class="avatar" id="p-avatar">?</div>
+        <div class="ops">
+          <div class="row">
+            <label class="btn" for="p-file">上传头像</label>
+            <input type="file" id="p-file" accept="image/*" hidden>
+            <button class="btn" type="button" id="p-clear">用文字头像</button>
+          </div>
+          <div class="row" id="p-swatches" aria-label="文字头像颜色"></div>
+        </div>
+      </div>
+      <div class="fields">
+        <div class="field"><label for="p-name">昵称</label><input id="p-name" maxlength="20" placeholder="比如 嘉译"></div>
+        <div class="field"><label for="p-region">常玩大区</label>
+          <select id="p-region"><option>EUW</option><option>EUNE</option><option>NA</option><option>KR</option><option>JP</option><option>OCE</option><option>TW</option><option>SEA</option><option>BR</option><option>LAN</option><option>LAS</option><option>TR</option></select></div>
+        <div class="field wide"><label for="p-ids">我的 Riot ID（每行一个，第一个为默认）</label><textarea id="p-ids" placeholder="Player#TAG"></textarea><small>说"我""我的账号"时，助手会用这里的账号。</small></div>
+        <div class="field wide"><label>主玩位置</label>
+          <div class="roles" id="p-roles"></div></div>
+        <div class="field"><label for="p-rank">段位</label><input id="p-rank" maxlength="30" placeholder="比如 钻石 IV"></div>
+        <div class="field"><label for="p-detail">复盘详细程度</label><select id="p-detail"><option>简短</option><option>标准</option><option>详细</option></select></div>
+        <div class="field wide"><label for="p-goals">提升目标</label><textarea id="p-goals" maxlength="200" placeholder="比如 减少中期被抓、单双排上大师"></textarea></div>
+      </div>
+      <div class="keybox">
+        <h4>Riot API key <span class="opt">可选</span></h4>
+        <p>查询对局需要它；对位知识问答不需要。key 只保存在本机的 <code>data/</code> 目录里，不会被提交到仓库。开发者 key 每 24 小时过期，可在 developer.riotgames.com 免费申请。</p>
+        <div class="keyrow"><input type="password" id="k-input" autocomplete="off" placeholder="RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" aria-label="Riot API key"><button class="btn" type="button" id="k-save">验证并保存</button></div>
+        <div class="kstatus" id="k-status"></div>
+      </div>
+      <div class="mems">
+        <h4>助手记住的事</h4>
+        <p>复盘时发现的长期特点会记在这里，并在之后的对话里使用。不准确的可以删掉。</p>
+        <div id="p-mems"></div>
+        <details class="ctx"><summary>查看实际注入给助手的内容</summary><pre id="p-ctx"></pre></details>
+      </div>
+    </div>
+    <footer><span class="msgline" id="p-msg"></span><button class="btn" type="button" id="p-cancel">取消</button><button class="btn primary" type="submit">保存</button></footer>
+  </form>
+</dialog>
+
+<script>
+const $ = id => document.getElementById(id);
+const log = $('log'), steps = $('steps'), input = $('input'), send = $('send');
+const LOGO = '<svg aria-hidden="true"><use href="#logo"/></svg>';
+const ROLES = [['TOP','上单'],['JUNGLE','打野'],['MIDDLE','中单'],['BOTTOM','下路'],['UTILITY','辅助']];
+const COLORS = ['#b98a2c','#3f8f8a','#5b4ab2','#c25b4a','#4a7fc2','#7a8a3a'];
+let current = null, profile = null, busy = false;
+
+/* ---------- theme ---------- */
+(() => {
+  try { const t = localStorage.getItem('riftlens-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  $('theme').addEventListener('click', () => {
+    const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('riftlens-theme', next); } catch (e) {}
+  });
+})();
+
+let STATUS = null;
+fetch('/api/status').then(r => r.json()).then(s => {
+  STATUS = s; if (!current && !$('app').hidden) showWelcome();
+  $('mode').querySelector('span').textContent = s.mode === 'llm' ? `模型 · ${s.model}` : s.mode === 'bridge' ? 'Claude Code · 独立会话' : '无模型模式 B0';
+  $('mode').classList.add('live');
+}).catch(() => { $('mode').querySelector('span').textContent = '后端未连接'; });
+
+/* ---------- markdown ---------- */
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function inline(s){
+  return esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/(^|[\s(（])\*(?!\s)(.+?)\*(?=[\s,.，。)）]|$)/g,'$1<i>$2</i>').replace(/(^|\s)_(.+?)_(?=\s|$)/g,'$1<i>$2</i>')
+    .replace(/\[([a-z_]+(?:\s*[·,]\s*[a-z_]+)*)\]/g,'<span class="cite">$1</span>');
+}
+function md(text){
+  const lines = String(text).replace(/\r/g,'').split('\n'); const out = []; let i = 0;
+  while (i < lines.length) {
+    const raw = lines[i];
+    if (/^\s*\|.*\|\s*$/.test(raw) && i + 1 < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i+1])) {
+      const row = l => l.trim().replace(/^\||\|$/g,'').split('|').map(c => c.trim());
+      const head = row(raw); i += 2; const body = [];
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) body.push(row(lines[i++]));
+      out.push('<div class="tbl"><table><thead><tr>' + head.map(h => '<th>' + inline(h) + '</th>').join('') + '</tr></thead><tbody>' +
+        body.map(r => '<tr>' + r.map(c => '<td>' + inline(c) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>');
+      continue;
+    }
+    if (/^\s*[-*] /.test(raw) || /^\s*\d+\. /.test(raw)) {
+      const ordered = /^\s*\d+\. /.test(raw); const items = [];
+      while (i < lines.length && (ordered ? /^\s*\d+\. /.test(lines[i]) : /^\s*[-*] /.test(lines[i]))) { items.push(lines[i].replace(/^\s*([-*]|\d+\.) /,'')); i++; }
+      out.push((ordered ? '<ol>' : '<ul>') + items.map(t => '<li>' + inline(t) + '</li>').join('') + (ordered ? '</ol>' : '</ul>'));
+      continue;
+    }
+    if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(raw)) { out.push('<hr>'); i++; continue; }
+    const h = raw.match(/^(#{1,4}) (.*)/);
+    if (h) out.push('<h3>' + inline(h[2]) + '</h3>'); else if (raw.trim()) out.push('<p>' + inline(raw) + '</p>');
+    i++;
+  }
+  return out.join('');
+}
+
+/* ---------- avatars & profile ---------- */
+function avatarHTML(p){
+  if (p && p.avatar) return '<img alt="" src="' + esc(p.avatar) + '">';
+  const n = (p && (p.display_name || (p.riot_ids && p.riot_ids[0]) || '')).trim();
+  return esc(n ? [...n][0].toUpperCase() : '我');
+}
+function paintAvatar(el, p){ el.innerHTML = avatarHTML(p); el.style.background = (p && !p.avatar) ? (p.avatar_color || 'var(--gold)') : ''; }
+function renderMe(){
+  paintAvatar($('me-avatar'), profile);
+  $('me-name').textContent = profile.display_name || (profile.riot_ids[0] ? profile.riot_ids[0].split('#')[0] : '设置个人资料');
+  $('me-rid').textContent = profile.riot_ids[0] ? `${profile.riot_ids[0]} · ${profile.region}` : '绑定账号后可直接说"我"';
+  document.querySelectorAll('.msg.user .avatar').forEach(a => paintAvatar(a, profile));
+}
+async function loadProfile(){
+  const d = await (await fetch('/api/profile')).json();
+  profile = d.profile; renderMe(); return d;
+}
+
+let draft = null;
+async function openProfile(){
+  const d = await loadProfile(); draft = {...d.profile};
+  $('p-name').value = draft.display_name; $('p-region').value = draft.region || 'EUW';
+  $('p-ids').value = (draft.riot_ids || []).join('\n'); $('p-rank').value = draft.rank;
+  $('p-detail').value = draft.detail || '标准'; $('p-goals').value = draft.goals; $('p-msg').textContent = '';
+  $('p-roles').innerHTML = ROLES.map(([k, v]) => `<label><input type="checkbox" value="${k}" ${draft.roles.includes(k) ? 'checked' : ''}>${v}</label>`).join('');
+  $('p-swatches').innerHTML = COLORS.map(c => `<button type="button" class="swatch${c === draft.avatar_color ? ' on' : ''}" style="background:${c}" data-c="${c}" aria-label="颜色 ${c}"></button>`).join('');
+  renderMems(d.memories); $('p-ctx').textContent = d.context || '（还没有任何长期记忆）';
+  paintAvatar($('p-avatar'), draft);
+  renderKeyStatus((await (await fetch('/api/status')).json()).riot_key); $('k-input').value = '';
+  $('dlg').showModal();
+}
+function renderMems(mems){
+  $('p-mems').innerHTML = mems.length ? mems.map(m => `<div class="mem"><span>${esc(m.text)}</span><time>${new Date(m.created * 1000).toLocaleDateString()}</time><button type="button" data-mem="${m.id}" aria-label="删除这条记忆">✕</button></div>`).join('')
+    : '<div class="empty">还没有。助手在复盘中发现稳定的特点时会自动记下。</div>';
+}
+function renderKeyStatus(k){
+  const el = $('k-status'); el.className = 'kstatus' + (k && k.configured ? ' ok' : '');
+  el.textContent = !k || !k.configured ? '未配置：可以先用对位知识问答；要查对局时再填写。'
+    : k.source === 'env' ? `已通过 .env 配置（${k.masked}）。在这里保存的 key 不会覆盖 .env。` : `已保存（${k.masked}）`;
+  if (STATUS) STATUS.riot_key = k;
+}
+$('k-save').addEventListener('click', async () => {
+  const el = $('k-status'), key = $('k-input').value.trim(); if (!key) return;
+  el.className = 'kstatus'; el.textContent = '正在向 Riot 验证…';
+  const r = await fetch('/api/settings/riot-key', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({key})});
+  const d = await r.json();
+  if (!r.ok) { el.className = 'kstatus bad'; el.textContent = d.detail || '保存失败'; return; }
+  $('k-input').value = ''; renderKeyStatus(d.riot_key);
+  if (d.verified === null) { el.textContent += '（暂时连不上 Riot，未能验证）'; }
+  if (!current) showWelcome();
+});
+$('p-swatches').addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (!b) return; draft.avatar_color = b.dataset.c; draft.avatar = '';
+  document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('on', s === b)); paintAvatar($('p-avatar'), draft); });
+$('p-clear').addEventListener('click', () => { draft.avatar = ''; paintAvatar($('p-avatar'), draft); });
+$('p-file').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const img = new Image(); const url = URL.createObjectURL(f);
+  img.onload = () => {
+    const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+    const s = Math.min(img.width, img.height); x.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 128, 128);
+    draft.avatar = c.toDataURL('image/jpeg', 0.85); URL.revokeObjectURL(url); paintAvatar($('p-avatar'), draft);
+  };
+  img.onerror = () => { $('p-msg').textContent = '这张图片读不出来，换一张试试。'; };
+  img.src = url; e.target.value = '';
+});
+$('p-mems').addEventListener('click', async e => { const b = e.target.closest('[data-mem]'); if (!b) return;
+  await fetch('/api/memories/' + b.dataset.mem, {method:'DELETE'}); const d = await (await fetch('/api/profile')).json(); renderMems(d.memories); $('p-ctx').textContent = d.context || '（还没有任何长期记忆）'; });
+$('pform').addEventListener('submit', async e => {
+  e.preventDefault();
+  Object.assign(draft, {display_name: $('p-name').value.trim(), region: $('p-region').value, riot_ids: $('p-ids').value,
+    rank: $('p-rank').value.trim(), detail: $('p-detail').value, goals: $('p-goals').value.trim(),
+    roles: [...document.querySelectorAll('#p-roles input:checked')].map(i => i.value)});
+  const r = await fetch('/api/profile', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(draft)});
+  if (!r.ok) { $('p-msg').textContent = (await r.json()).detail || '保存失败'; return; }
+  profile = (await r.json()).profile; renderMe(); $('dlg').close(); if (!current) showWelcome();
+});
+$('p-cancel').addEventListener('click', () => $('dlg').close());
+$('dlg-x').addEventListener('click', () => $('dlg').close());
+$('me').addEventListener('click', openProfile);
+
+/* ---------- conversations ---------- */
+function ago(t){ const s = Date.now() / 1000 - t; if (s < 60) return '刚刚'; if (s < 3600) return Math.floor(s / 60) + ' 分钟前'; if (s < 86400) return Math.floor(s / 3600) + ' 小时前'; return new Date(t * 1000).toLocaleDateString(); }
+async function loadConvs(){
+  const list = await (await fetch('/api/conversations')).json();
+  $('convs').innerHTML = list.length ? list.map(c => `<div class="conv${c.id === current ? ' active' : ''}" tabindex="0" data-id="${c.id}" title="双击重命名">
+      <div class="tt">${esc(c.title)}</div><span class="mt">${ago(c.updated)}</span>
+      <button class="del" type="button" data-del="${c.id}" aria-label="删除对话"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>`).join('')
+    : '<div class="none">还没有对话</div>';
+}
+$('convs').addEventListener('click', async e => {
+  const del = e.target.closest('[data-del]');
+  if (del) { e.stopPropagation(); if (del.dataset.armed) { await fetch('/api/conversations/' + del.dataset.del, {method:'DELETE'}); if (current === del.dataset.del) newChat(); loadConvs(); }
+    else { del.dataset.armed = '1'; del.style.color = 'var(--err)'; del.setAttribute('aria-label', '再点一次确认删除'); setTimeout(() => { delete del.dataset.armed; del.style.color = ''; }, 2500); } return; }
+  const row = e.target.closest('.conv'); if (row && !e.target.closest('input')) openConv(row.dataset.id);
+});
+$('convs').addEventListener('keydown', e => { const row = e.target.closest('.conv'); if (row && e.key === 'Enter' && e.target === row) openConv(row.dataset.id); });
+$('convs').addEventListener('dblclick', e => {
+  const row = e.target.closest('.conv'); if (!row) return; const tt = row.querySelector('.tt');
+  const inp = document.createElement('input'); inp.value = tt.textContent; tt.replaceWith(inp); inp.focus(); inp.select();
+  const done = async ok => { if (ok && inp.value.trim()) await fetch('/api/conversations/' + row.dataset.id, {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title: inp.value.trim()})}); loadConvs(); if (row.dataset.id === current) $('title').textContent = inp.value.trim(); };
+  inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') done(true); if (ev.key === 'Escape') done(false); });
+  inp.addEventListener('blur', () => done(true));
+});
+function showWelcome(){
+  const bound = profile && profile.riot_ids.length;
+  const me = bound ? profile.riot_ids[0] : 'Player#TAG';
+  log.innerHTML = `<div class="welcome">
+    <h2>把一局比赛拆开看：哪里赢，哪里输，下一局怎么打</h2>
+    <p>输入 Riot ID 复盘对局，或者问对位、打法问题。对局数据来自 Riot 官方接口，由确定性工具计算；知识类问题会联网查数据网站和玩家讨论，并附上来源。右侧实时显示每一步调用了什么。</p>
+    ${STATUS && STATUS.riot_key && !STATUS.riot_key.configured ? '<div class="keywarn">还没有配置 Riot API key：对位知识问答可以直接用，查询对局需要先填写 key。<button type="button" class="go-key">填写 key</button></div>' : ''}
+    ${bound ? '' : '<div class="setup">先绑定你的账号，之后直接说“复盘我最近一局”就行。<button type="button" id="go-profile">设置账号</button></div>'}
+    <div class="cards">
+      <button class="card" type="button" data-q="${bound ? '复盘我最近一局' : '复盘 ' + me + ' 最近一局'}"><span class="t">单局复盘<span>时间线</span></span><span class="d">转折点、团战、死亡、资源、对线</span></button>
+      <button class="card" type="button" data-q="${bound ? '我最近 10 局状态怎么样' : me + ' 最近 10 局状态怎么样'}"><span class="t">近期状态<span>多局</span></span><span class="d">胜率、赢局与输局对比、英雄池</span></button>
+      <button class="card" type="button" data-q="${bound ? '我最近输的一局是怎么输的' : me + ' 最近输的一局是怎么输的'}"><span class="t">输局诊断<span>单局</span></span><span class="d">找出最近一局失败，分析原因</span></button>
+      <button class="card" type="button" data-q="亚索怎么打鳄鱼？谁打鳄鱼比较好打？"><span class="t">对位知识<span>联网</span></span><span class="d">官方技能 + 数据网站 + 玩家讨论汇总</span></button>
+    </div></div>`;
+  $('go-profile')?.addEventListener('click', openProfile);
+  log.querySelector('.go-key')?.addEventListener('click', openProfile);
+}
+function newChat(){ current = null; $('title').textContent = '新对话'; clearSteps(); showWelcome(); loadConvs(); $('app').classList.remove('open'); input.focus(); }
+async function openConv(id){
+  current = id; $('app').classList.remove('open'); clearSteps();
+  const d = await (await fetch('/api/conversations/' + id)).json();
+  log.innerHTML = '';
+  for (const m of d.messages) {
+    if (m.role === 'user') addMsg('user', esc(m.text));
+    else {
+      const chips = '<div class="chips">' + m.tools.map(t => '<span class="chip">' + esc(t) + '</span>').join('') + '</div>';
+      const meta = m.usage ? `<div class="meta">${m.usage.turns} 轮 · 输入 ${(m.usage.total_input_tokens || 0).toLocaleString()} · 输出 ${(m.usage.output_tokens || 0).toLocaleString()} token · ${m.usage.duration_s}s</div>` : '';
+      addMsg('bot', chips + '<div class="body">' + md(m.text) + '</div>' + meta);
+    }
+  }
+  if (!d.messages.length) showWelcome();
+  const c = [...document.querySelectorAll('.conv')].find(x => x.dataset.id === id); $('title').textContent = c ? c.querySelector('.tt').textContent : '对话';
+  loadConvs();
+}
+$('newchat').addEventListener('click', newChat);
+$('menu').addEventListener('click', () => $('app').classList.toggle('open'));
+
+/* ---------- chat ---------- */
+function addMsg(role, html){
+  log.querySelector('.welcome')?.remove();
+  const d = document.createElement('div'); d.className = 'msg ' + role;
+  d.innerHTML = (role === 'bot' ? '<div class="avatar bot">' + LOGO + '</div>' : '<div class="avatar"></div>') + '<div class="bubble">' + html + '</div>';
+  if (role === 'user') paintAvatar(d.querySelector('.avatar'), profile);
+  log.appendChild(d); log.scrollTop = log.scrollHeight; return d;
+}
+function clearSteps(){ steps.innerHTML = '<div class="empty">发送问题后，这里按时间顺序显示调用的工具、返回结果、记下的记忆和 token 用量。</div>'; $('trace-id').textContent = ''; }
+function addStep(kind, label, value, err, html){
+  steps.querySelector('.empty')?.remove();
+  const d = document.createElement('div'); d.className = 'step ' + kind + (err ? ' err' : '');
+  d.innerHTML = '<span class="dot"></span><div class="k">' + esc(label) + '</div>' + (value ? '<div class="v">' + esc(value) + '</div>' : '') + (html || '');
+  steps.appendChild(d); steps.scrollTop = steps.scrollHeight;
+}
+function usageCard(u){
+  const f = n => (n || 0).toLocaleString();
+  return '<div class="usage-card">' +
+    `<div><b>${f(u.total_input_tokens)}</b><span>输入 token</span></div><div><b>${f(u.output_tokens)}</b><span>输出 token</span></div>` +
+    `<div><b>${u.turns ?? '-'}</b><span>模型轮数</span></div><div><b>${u.duration_s ?? '-'}s</b><span>耗时</span></div>` +
+    `<div><b>${f(u.cache_read_tokens)}</b><span>其中缓存读取</span></div><div><b>$${(u.cost_usd_list_price || 0).toFixed(3)}</b><span>标价估算</span></div></div>`;
+}
+async function ask(text){
+  busy = true; send.disabled = true; clearSteps();
+  addMsg('user', esc(text));
+  const bot = addMsg('bot', '<div class="chips"></div><div class="thinking"><span class="pulse"></span><span>正在分析…</span></div><div class="body"></div>');
+  const chips = bot.querySelector('.chips'), thinking = bot.querySelector('.thinking'), body = bot.querySelector('.body');
+  try {
+    const res = await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text, conversation_id: current})});
+    const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = '';
+    while (true) {
+      const {value, done} = await reader.read(); if (done) break;
+      buf += dec.decode(value, {stream:true}); let i;
+      while ((i = buf.indexOf('\n\n')) >= 0) {
+        const block = buf.slice(0, i); buf = buf.slice(i + 2);
+        const ev = (block.match(/^event: (.*)$/m) || [])[1]; const data = JSON.parse((block.match(/^data: (.*)$/m) || [,'null'])[1]);
+        if (ev === 'conversation') { const fresh = current !== data.id; current = data.id; $('title').textContent = data.title; if (fresh) loadConvs(); }
+        if (ev === 'trace') $('trace-id').textContent = data.run_id;
+        if (ev === 'note') { addStep('note', data.text); if (thinking.isConnected) thinking.lastChild.textContent = data.text; }
+        if (ev === 'tool_call') { const c = document.createElement('span'); c.className = 'chip'; c.textContent = data.name; chips.appendChild(c); addStep('tool_call', '调用 ' + data.name, JSON.stringify(data.args)); }
+        if (ev === 'tool_result') { if (data.error) chips.lastChild?.classList.add('err'); addStep('tool_result', '返回 ' + data.name, data.error ? '错误：' + data.error : data.preview, data.error); }
+        if (ev === 'memory') { const c = document.createElement('span'); c.className = 'chip mem'; c.textContent = '记住了一件事'; chips.appendChild(c); addStep('memory', '记入长期记忆', data.text); }
+        if (ev === 'usage' && data && data.total_input_tokens !== undefined) { addStep('usage', '本条消息用量' + (data.model ? ' · ' + data.model : ''), '', false, usageCard(data));
+          bot.querySelector('.bubble').insertAdjacentHTML('beforeend', `<div class="meta">${data.turns} 轮 · 输入 ${(data.total_input_tokens || 0).toLocaleString()} · 输出 ${(data.output_tokens || 0).toLocaleString()} token · ${data.duration_s}s</div>`); }
+        if (ev === 'usage' && data && data.total_tokens) addStep('usage', '模型 token', `输入 ${data.prompt_tokens} · 输出 ${data.completion_tokens}`);
+        if (ev === 'answer') { thinking.remove(); body.innerHTML = md(data.text); }
+        if (ev === 'done') { addStep('done', '完成'); loadConvs(); }
+        log.scrollTop = log.scrollHeight;
+      }
+    }
+  } catch (e) {
+    if (thinking.isConnected) thinking.lastChild.textContent = '连接中断：' + e.message + '。回复完成后，在左侧打开这个对话即可看到。';
+  } finally { busy = false; send.disabled = false; input.focus(); }
+}
+$('form').addEventListener('submit', e => { e.preventDefault(); const t = input.value.trim(); if (!t || busy) return; input.value = ''; input.style.height = ''; ask(t); });
+input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('form').requestSubmit(); } });
+input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 160) + 'px'; });
+log.addEventListener('click', e => {
+  const q = e.target.closest('[data-q]'); if (!q || busy) return;
+  if (q.dataset.q.includes('Player#TAG')) {  // no account bound: let the user type their own Riot ID
+    input.value = q.dataset.q; input.focus();
+    const i = input.value.indexOf('Player#TAG'); input.setSelectionRange(i, i + 'Player#TAG'.length);
+    return;
+  }
+  ask(q.dataset.q);
+});
+
+
+/* ---------- views: home <-> chat ---------- */
+function showView(v){
+  const chat = v === 'chat';
+  $('home').hidden = chat; $('app').hidden = !chat;
+  try { history.replaceState(null, '', chat ? '#chat' : '#home'); } catch (e) {}
+  if (chat) setTimeout(() => input.focus(), 0); else window.scrollTo(0, 0);
+}
+document.querySelectorAll('[data-start]').forEach(b => b.addEventListener('click', () => showView('chat')));
+$('home-profile').addEventListener('click', openProfile);
+$('go-home').addEventListener('click', () => showView('home'));
+$('go-home').addEventListener('keydown', e => { if (e.key === 'Enter') showView('home'); });
+
+/* ---------- activity rail toggle ---------- */
+function wide(){ return matchMedia('(min-width: 1181px)').matches; }
+function setRail(on){
+  const app = $('app');
+  if (wide()) { app.classList.toggle('rail-off', !on); app.classList.remove('rail-on'); try { localStorage.setItem('riftlens-rail', on ? '1' : '0'); } catch (e) {} }
+  else { app.classList.toggle('rail-on', on); }
+  $('rail-toggle').classList.toggle('on', on);
+  $('rail-toggle').setAttribute('aria-pressed', on ? 'true' : 'false');
+}
+function railVisible(){ const app = $('app'); return wide() ? !app.classList.contains('rail-off') : app.classList.contains('rail-on'); }
+$('rail-toggle').addEventListener('click', () => setRail(!railVisible()));
+$('rail-close').addEventListener('click', () => setRail(false));
+(() => { let on = true; try { on = localStorage.getItem('riftlens-rail') !== '0'; } catch (e) {} setRail(wide() ? on : false); })();
+matchMedia('(min-width: 1181px)').addEventListener('change', () => { let on = true; try { on = localStorage.getItem('riftlens-rail') !== '0'; } catch (e) {} setRail(wide() ? on : false); });
+
+/* ---------- boot ---------- */
+(async () => {
+  try { await loadProfile(); } catch (e) { profile = {display_name:'', avatar:'', avatar_color:'#b98a2c', riot_ids:[], region:'EUW', roles:[], rank:'', goals:'', detail:'标准'}; renderMe(); }
+  await loadConvs(); showWelcome();
+  showView(location.hash === '#chat' ? 'chat' : 'home');
+})();
+</script>
+</body>
+</html>

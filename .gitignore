@@ -1,0 +1,16 @@
+# secrets
+.env
+
+# environments
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# runtime data (contains Riot puuids, user profile/avatar, conversations)
+cache/
+data/
+traces/
+bridge/
+reports/
+benchmarks/
