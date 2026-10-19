@@ -11,7 +11,7 @@ RiftLens 从 Riot 官方接口拉取对局数据，用确定性的分析工具�
 - OP.GG 数据、段位历史和 LP 曲线；
 - 打完自动复盘。
 
-Windows 用户可以直接用安装包 `RiftLens-Setup-<版本>.exe`。
+Windows 用户可以直接下载安装包：**[Releases → RiftLens-Setup-1.0.0.exe](https://github.com/JaveyBae/riftlens/releases/latest)**。
 
 > 这是一个个人学习项目，重点不在"又一个数据网站"，而在于：**在没有标准答案的分析任务上，怎样让 agent 的结论可验证、少幻觉，并且能量化成本。**
 
