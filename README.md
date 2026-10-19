@@ -4,6 +4,15 @@
 
 RiftLens 从 Riot 官方接口拉取对局数据，用确定性的分析工具算出事实（转折点、团战、阵亡、资源、对线），再由大模型写成**每条结论都标注依据**的复盘。它也能分析近期状态、回答对位问题，并记住用户的长期特点。
 
+它同时是一个**桌面客户端助手**（思路类似 League Akari）：直接读取本机英雄联盟客户端，国服、外服都能用，不需要 Riot key。功能包括：
+- 自动接受、按位置选禁；
+- 选人和游戏中的十人战绩、开黑检测、游戏内悬浮窗；
+- 按对面阵容出装并写进游戏商店，生成赛前计划；
+- OP.GG 数据、段位历史和 LP 曲线；
+- 打完自动复盘。
+
+Windows 用户可以直接用安装包 `RiftLens-Setup-<版本>.exe`。
+
 > 这是一个个人学习项目，重点不在"又一个数据网站"，而在于：**在没有标准答案的分析任务上，怎样让 agent 的结论可验证、少幻觉，并且能量化成本。**
 
 ![首页](docs/screenshots/home.png)
@@ -21,6 +30,14 @@ RiftLens 从 Riot 官方接口拉取对局数据，用确定性的分析工具�
 | **对位知识** | Riot 官方英雄数据 + 联网查询数据网站和玩家讨论，标注版本、来源和分歧 | `亚索怎么打鳄鱼` |
 | **长期记忆** | 用户资料（Riot ID、位置、段位、目标）+ agent 记下的长期特点，可查看、可删除 | `复盘我最近一局` |
 | **段位基准** | 从同段位、同版本、同英雄的对局中采样，计算每分钟经济/经验/补刀分位数 | 李青打野 · 钻石 · 16.20 |
+| **客户端助手** | 连接本机英雄联盟客户端（任何服务器，**包括国服**，不需要 Riot key）：自动接受对局、按位置自动选/禁英雄（可设延迟）、锁定英雄后自动套用国服或 OP.GG 符文、选人和游戏中查询每名玩家的段位/近期战绩/打法标签/侦察分/英雄熟练度/开黑检测、赛后自动复盘和自动点赞 | 侧栏“客户端助手” |
+| **这把怎么打 + 出装** | 选人锁定后、进加载界面时各生成一次：对位胜率、对面最弱 / 最强的人、开黑、双方阵容（物理/魔法、坦克、回复、硬控）、按对面阵容调整的出装（自动写进游戏商店推荐页），以及 AI 写的 10 行赛前计划；只在开局前生成，游戏中不给实时指令 | 实时对局 · 悬浮窗“这把怎么打” |
+| **游戏内悬浮窗** | 桌面版：游戏中按 Shift+Tab 显示十人面板（段位、侦察分、近 6 局、标签、你的备注、实时 KDA / 补刀 / 装备价值），点英雄头像看技能冷却 | 游戏中 Shift+Tab |
+| **AI 教练** | 分析最近最多 100 局排位，可按位置筛选，输出强项、弱项和最该改进的一点；复盘和教练都能选“客观分析 / 毒舌喷子 / 专业夸夸” | 客户端助手 → AI 教练 |
+| **战绩与玩家** | 个人打法画像、英雄熟练度、每局完整计分板（评分、MVP/ACE、伤害、装备）；按“名字#编号”查同大区玩家；给遇到的人写备注，下次排到时提醒 | 我的战绩 · 查玩家 · 玩家备注 |
+| **段位历史与 LP 曲线** | 当前段位、本赛季最高、上赛季最高；外服账号显示 OP.GG 记录的往季段位，LP 曲线合并 OP.GG 和 RiftLens 自己记录的点（每局排位后自动记录，并让 OP.GG 刷新一次）；国服只能从开始使用 RiftLens 起记录 | 我的战绩 |
+| **OP.GG 数据** | 英雄梯队（按位置、地区、段位，排位 / 大乱斗）、每个英雄的符文、召唤师技能、技能加点、出门装 / 鞋子 / 核心装备、难打和好打的对位；一键把符文和召唤师技能应用到客户端，也可以选定英雄后自动应用；对话里问出装、对位时 agent 会调用 `opgg_champion` | 客户端助手 → OP.GG |
+| **桌面客户端** | 用 pywebview 把网页包成原生窗口，打包成 `RiftLens.exe`，并用 Inno Setup 做成中文安装包（按用户安装、不需要管理员、可卸载） | `python build_desktop.py --installer` |
 | **可观测** | 每一步工具调用、返回、记忆写入、token 用量和成本实时显示，并写入轨迹文件 | — |
 
 ---
@@ -33,7 +50,7 @@ flowchart LR
     S --> DB[(SQLite<br/>对话 · 资料 · 记忆)]
     S -->|收件箱| W[Headless worker<br/>每条消息一个隔离会话]
     S -->|llm 模式| L[OpenAI 兼容模型<br/>DeepSeek / Qwen …]
-    W -->|只允许调用| T[工具层<br/>server.py · 16 个 MCP 工具]
+    W -->|只允许调用| T[工具层<br/>server.py · 22 个 MCP 工具]
     L --> T
     T --> A[分析函数<br/>lol_review/analysis.py]
     A --> R[Riot API 客户端<br/>缓存 · 限流 · 重试]
@@ -97,6 +114,38 @@ cp .env.example .env    # 可选：填入 Riot API key
 # llm 模式：在 .env 中填写 LLM_BASE_URL / LLM_API_KEY / LLM_MODEL，无需 worker
 ```
 
+### 3.5 客户端助手与桌面版（Windows）
+
+客户端助手读取的是**本机正在运行的英雄联盟客户端**（LCU 接口），所以国服、外服都能用，也不需要 Riot API key：
+
+- **自动接受对局**（可设延迟）；
+- **自动选 / 禁英雄**：按你排好的顺序，跳过已被禁用、已被选走和队友想选的英雄，可选“只预选不锁定”；
+- **按位置自动选 / 禁**：每个位置可以有自己的英雄列表，分到哪个位置就用哪个，没有就用通用列表；选和禁各自可设 0–5 秒延迟；
+- **玩家战绩**：英雄选择时查询队友，进入游戏后查询全部 10 人：单双排段位、近 N 局胜率和 KDA、最近 10 局胜负、常用英雄，以及“连胜 / 连败 / 绝活 / 疑似小号 / 战绩隐藏”和约 30 种打法标签（输出核心、视野缺失、恐补症……）；
+- **侦察分、熟练度、开黑**：侦察分由近期场次、胜场和 KDA 算出，只用于和同局其他人比较；游戏中显示每人所用英雄的熟练度；同队两人最近一起打过至少 2 局会标成“开黑”；
+- **符文**：锁定英雄后自动应用，数据来源可选国服（lol.qq.com 的国服统计）或 OP.GG；也可以把客户端当前符文页存成某个英雄的默认页，之后优先用它；
+- **游戏内悬浮窗**（桌面版）：游戏中按 Shift+Tab 显示 / 隐藏，只在游戏进行时占用这个快捷键。游戏需要设成“无边框”或“窗口”模式；
+- **赛后**：可自动给一名队友点“友善”赞（默认关闭）；可以给这局遇到的人写备注和标签，之后在选人和游戏中再遇到会显示；
+- **OP.GG**：英雄梯队和单英雄出装页；“应用到客户端”会新建一页名为“RiftLens 英雄名”的符文页（再次应用会替换它；符文页满了会替换当前页），召唤师技能只能在英雄选择阶段设置。可在“自动化”里打开选定英雄后自动应用，以及闪现放 D 还是 F；
+- **赛后自动复盘**：对局结束后自动打开新对话复盘这一局；“我的战绩”里每一局都可以看计分板或一键复盘，复盘风格可选客观分析、毒舌喷子、专业夸夸。客户端对局的 id 形如 `LCU_<gameId>`，所有分析工具都能直接使用。
+
+```powershell
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt -r requirements-desktop.txt
+.venv\Scripts\python desktop.py                 # 桌面窗口（直接打开客户端助手）
+.venv\Scripts\python build_desktop.py           # 打包 → dist\RiftLens\RiftLens.exe
+.venv\Scripts\python build_desktop.py --admin   # 打包成启动时请求管理员权限的版本
+.venv\Scripts\python build_desktop.py --installer  # 再生成安装包 release\RiftLens-Setup-<版本>.exe（需要 Inno Setup 6：winget install -e --id JRSoftware.InnoSetup）
+```
+
+安装包按用户安装到 `%LOCALAPPDATA%\Programs\RiftLens`，不需要管理员权限；可选“总是以管理员身份运行”（国服需要）；卸载时保留 `%APPDATA%\RiftLens` 里的设置和记录。程序没有数字签名，第一次运行时 Windows SmartScreen 会提示，点“更多信息 → 仍要运行”。
+
+- **国服客户端以管理员权限运行**，RiftLens 也要“以管理员身份运行”（或用 `--admin` 打包），否则读不到客户端的连接信息。
+- 客户端装在不常见的位置时，在 `.env` 里设置 `LOL_INSTALL_DIR` 为包含 `lockfile` 的文件夹。
+- 打包版的数据、设置和 `.env` 放在 `%APPDATA%\RiftLens`；没有配置 LLM 时使用无模型模式（B0），在那里的 `.env` 填写 `LLM_*` 后获得完整复盘。
+- OP.GG 数据来自它网站使用的非官方 JSON 接口（`lol-api-champion.op.gg`），随时可能变动；接口失败时页面会提示，agent 的其他工具不受影响。结果缓存 1 小时。
+- 客户端返回的对局数据没有 `challenges` 字段（如偷 buff 数、对线期优势），位置判断来自对局的 lane/role 和惩戒，可能不准。
+
 ### 4. 其他用法
 
 ```bash
@@ -138,6 +187,10 @@ RIFTLENS_STATE_DIR=/tmp/riftlens-demo .venv/bin/python -m web.headless_worker
 | | `detect_mistakes` | 规则检出的失误 |
 | | `kill_log` | 每次击杀的击杀者、被击杀者、助攻，用于核对"单杀"等说法 |
 | 多局 | `recent_form` | 最近 N 局趋势，只用终局统计 |
+| 本机客户端 | `client_recent_matches` · `client_player` · `client_recent_form` | 读取本机客户端的对局、玩家卡片和近期状态（国服可用） |
+| | `client_game_plan` | 正在进行的对局：已知选角、对位胜率、双方阵容、十人战绩、按阵容调整的出装和规则建议 |
+| | `client_coach_data` | 最近最多 100 局排位的汇总：打法标签、胜局和败局对比、各英雄和各位置战绩 |
+| 英雄数据 | `opgg_champion` | OP.GG 统计：梯队、胜率、符文、出装、加点、对位 |
 | 知识 | `champion_info` | 官方英雄数据（中文，当前版本），支持"鳄鱼""瞎子"等外号 |
 | 规划 | `update_plan` | 记录和更新复盘计划 |
 
@@ -185,10 +238,18 @@ RIFTLENS_STATE_DIR=/tmp/riftlens-demo .venv/bin/python -m web.headless_worker
 ```
 lol_review/
   riot.py           Riot API 客户端：路由、缓存、限流、重试、Data Dragon
+  lcu.py            本机客户端（LCU）接口：自动发现端口和密码、对局历史 → match-v5 格式转换
+  assistant.py      客户端助手：自动接受、按位置选禁、玩家战绩与标签、开黑检测、自动应用符文、自动点赞、赛后复盘触发
+  playstyle.py      打法标签、侦察分、开黑检测、计分板评分
+  tencent.py        国服数据（lol.qq.com）：符文推荐、技能冷却
+  notes.py          玩家备注
+  gameplan.py       赛前计划：阵容分析、对位、按阵容出装、规则建议、一次模型调用写计划
+  lp.py             LP 记录（配合 OP.GG 往季段位和 LP 点）
+  opgg.py           OP.GG 英雄梯队与出装数据（Data Dragon 中文名称和图标）
   analysis.py       确定性分析函数（不调用模型）
   benchmark.py      段位基准采样
   trace.py          轨迹记录
-server.py           MCP server：16 个工具
+server.py           MCP server：22 个工具（含 5 个读取本机客户端的工具和 1 个 OP.GG 工具）
 review.py           命令行：固定骨架复盘
 web/
   app.py            FastAPI：对话、资料、记忆、SSE 流式输出、三种模式
@@ -196,7 +257,10 @@ web/
   bridge.py         网页与模型端之间的收件箱 + 工具调用命令行
   headless_worker.py  每条消息一个隔离的 Claude Code 会话，记录 token 与成本
   static/index.html   前端：首页、对话列表、聊天、Agent 活动时间轴、资料与设置面板
+  static/overlay.html 游戏内悬浮窗
 docs/screenshots/   README 截图
+desktop.py          桌面版：本进程内启动服务 + pywebview 原生窗口
+build_desktop.py    PyInstaller 打包脚本
 trace_view.py       轨迹 → 网页
 benchmark_view.py   基准对比 → 网页
 ```
@@ -222,6 +286,11 @@ benchmark_view.py   基准对比 → 网页
 RiftLens 是个人学习项目，未获得 Riot Games 的认可，不代表 Riot Games 或任何参与《英雄联盟》制作与管理的官方人员的观点或意见。Riot Games 和《英雄联盟》是 Riot Games, Inc. 的商标或注册商标。使用本项目需遵守 [Riot Developer Policies](https://developer.riotgames.com/policies/general)。
 
 开发过程使用了 Claude Code 辅助编码。
+
+## 致谢
+
+打法标签的规则和阈值、侦察分公式、开黑判定和自动点赞的轮换方式参考了
+[LoL Desktop Assistant](https://github.com/Giggitycountless/LOL-AI-Intelligence)（AGPL-3.0），在本项目中用 Python 重新实现。
 
 ## License
 

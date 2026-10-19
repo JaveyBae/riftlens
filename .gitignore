@@ -14,3 +14,10 @@ traces/
 bridge/
 reports/
 benchmarks/
+
+# desktop build
+build/
+dist/
+*.spec
+dist-new/
+release/

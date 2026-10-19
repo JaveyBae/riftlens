@@ -9,6 +9,7 @@ from __future__ import annotations
 from mcp.server.mcpserver import MCPServer
 
 from lol_review import analysis as A
+from lol_review import lcu
 from lol_review.riot import Riot, RiotError
 from lol_review.trace import Tracer, traced
 
@@ -19,6 +20,8 @@ mcp = MCPServer(
     name="lol-review",
     instructions=(
         "Tools for reviewing a League of Legends match from Riot match-v5 data. "
+        "Games played on this computer (any server, including the Tencent client) are read from the running client: "
+        "use client_recent_matches, whose match ids start with LCU_ and work with every match tool. "
         "Start with find_player and list_recent_matches, then get_match_summary and turning_points. "
         "Cite every claim with the mm:ss times the tools return. Ability usage, exact positioning "
         "and ward locations are not in the data; say so instead of guessing."
@@ -33,6 +36,10 @@ def tool(fn):
 
 
 def _game(match_id: str) -> A.Game:
+    if match_id.upper().startswith("LCU_"):  # a game read from the local client (any server, including 国服)
+        gid = int(match_id.split("_", 1)[1])
+        client = lcu.default()
+        return A.Game(*lcu.to_match_v5(client.game(gid), client.timeline(gid), client))
     return A.Game(riot.match(match_id), riot.timeline(match_id))
 
 
@@ -72,6 +79,172 @@ def list_recent_matches(puuid: str, count: int = 5, ranked_only: bool = False) -
             })
         return {"matches": rows}
     except (RiotError, StopIteration) as e:
+        return _err(e)
+
+
+@tool
+def client_recent_matches(count: int = 10, ranked_only: bool = False) -> dict:
+    """Recent games of the account logged into the League client on this computer, read from the client itself (works on every server, including 国服, and needs no Riot API key). The match_id values (LCU_...) work with every match tool."""
+    try:
+        c = lcu.default()
+        me = c.me() or {}
+        rows = [lcu.history_row(g, c) for g in c.history(me["puuid"], max(count * 2, count) if ranked_only else count)]
+        if ranked_only:
+            rows = [r for r in rows if r["queue_id"] in (420, 440)]
+        return {"player": f"{me.get('gameName', '')}#{me.get('tagLine', '')}", "puuid": me.get("puuid"), "matches": rows[:count]}
+    except (RiotError, KeyError) as e:
+        return _err(e)
+
+
+@tool
+def client_player(puuid: str = "") -> dict:
+    """Rank, recent record, streak, main champions and tags for one player, read from the local client. Empty puuid = the logged-in account."""
+    from lol_review import assistant
+
+    try:
+        c = lcu.default()
+        return assistant.get().player(puuid or (c.me() or {})["puuid"])
+    except (RiotError, KeyError) as e:
+        return _err(e)
+
+
+@tool
+def client_recent_form(count: int = 10, ranked_only: bool = False) -> dict:
+    """Trends across the logged-in account's recent Summoner's Rift games, read from the local client: win rate, wins vs losses, champion pool, streak."""
+    try:
+        c = lcu.default()
+        me = c.me() or {}
+        matches = []
+        for g in c.history(me["puuid"], min(count * 2, 40)):
+            if g.get("mapId") not in (None, 11) or g.get("gameDuration", 0) < 300:
+                continue
+            if ranked_only and g.get("queueId") not in (420, 440):
+                continue
+            matches.append(lcu.to_match_v5(c.game(g["gameId"]), None, c)[0])
+            if len(matches) >= count:
+                break
+        return A.recent_form(matches, me["puuid"])
+    except (RiotError, KeyError) as e:
+        return _err(e)
+
+
+_TEAM_KILLS: dict[int, dict[int, int]] = {}  # gameId -> {teamId: kills}; finished games never change
+
+
+def _team_kills(c: lcu.LCU, g: dict) -> int | None:
+    gid = g.get("gameId")
+    if gid not in _TEAM_KILLS:
+        full = c.game(gid)
+        tk: dict[int, int] = {}
+        for p in full.get("participants", []):
+            tk[p["teamId"]] = tk.get(p["teamId"], 0) + (p.get("stats") or {}).get("kills", 0)
+        _TEAM_KILLS[gid] = tk
+    team = ((g.get("participants") or [{}])[0]).get("teamId")
+    return _TEAM_KILLS[gid].get(team)
+
+
+@tool
+def client_coach_data(count: int = 50, position: str = "", ranked_only: bool = True) -> dict:
+    """Multi-game coaching data for the logged-in account, read from the local client: up to 100 recent Summoner's Rift games (ranked solo/flex by default), optionally one position (TOP/JUNGLE/MIDDLE/BOTTOM/UTILITY). Returns averages, playstyle tags with the numbers behind them, wins-vs-losses averages, and records per champion and per position. Use it for "analyse my recent games / what are my strengths and weaknesses"."""
+    from collections import defaultdict
+
+    from lol_review import playstyle
+
+    try:
+        c = lcu.default()
+        me = c.me() or {}
+        pos = (position or "").upper()
+        pos = {"MID": "MIDDLE", "ADC": "BOTTOM", "BOT": "BOTTOM", "SUPPORT": "UTILITY", "SUP": "UTILITY"}.get(pos, pos)
+        raw = [g for g in c.history_pages(me["puuid"], min(max(count, 5), 100) * (3 if ranked_only or pos else 1))
+               if not ranked_only or g.get("queueId") in (420, 440)]
+        rows = []
+        for g in raw:
+            r = playstyle.stat_row(g)
+            if r and (not pos or r["role"] == pos):
+                rows.append((g, r))
+            if len(rows) >= min(count, 100):
+                break
+        for g, r in rows[:20]:  # kill participation needs the full game; the newest 20 are enough
+            try:
+                r["team_kills"] = _team_kills(c, g)
+            except RiotError:
+                pass
+        stats = [r for _, r in rows]
+        prof = playstyle.profile(stats)
+
+        def avg(rs):
+            n = len(rs) or 1
+            m = sum(r["minutes"] for r in rs) or 1
+            return {"games": len(rs), "kda": f"{sum(r['kills'] for r in rs) / n:.1f}/{sum(r['deaths'] for r in rs) / n:.1f}/{sum(r['assists'] for r in rs) / n:.1f}",
+                    "cs_per_min": round(sum(r["cs"] for r in rs) / m, 1), "damage_per_min": round(sum(r["damage"] for r in rs) / m),
+                    "vision": round(sum(r["vision"] for r in rs) / n, 1), "wards": round(sum(r["wards"] for r in rs) / n, 1)}
+
+        by_champ, by_pos = defaultdict(list), defaultdict(list)
+        for r in stats:
+            by_champ[r["champion_id"]].append(r)
+            by_pos[r["role"] or "?"].append(r)
+        record = lambda rs: {"games": len(rs), "wins": sum(r["win"] for r in rs), "win_rate": round(sum(r["win"] for r in rs) / len(rs), 2)}  # noqa: E731
+        return {
+            "player": f"{me.get('gameName', '')}#{me.get('tagLine', '')}", "scope": pos or "全部位置",
+            "queues": "单双排 + 灵活组排" if ranked_only else "全部召唤师峡谷对局", "games": len(stats),
+            "overall": {**record(stats), **avg(stats)} if stats else {},
+            "playstyle_tags": [f"{t['text']}（{t['desc']}）" for t in prof["tags"]], "averages": prof["averages"],
+            "wins_vs_losses": {"wins": avg([r for r in stats if r["win"]]), "losses": avg([r for r in stats if not r["win"]])},
+            "champions": sorted(({"champion": c.champ_name(cid), **record(rs), **avg(rs)} for cid, rs in by_champ.items()), key=lambda x: -x["games"])[:10],
+            "positions": {p: record(rs) for p, rs in by_pos.items()},
+            "note": "数据来自本机客户端；参团率只按最近 20 局计算。没有技能、走位和插眼位置数据。",
+        }
+    except (RiotError, KeyError) as e:
+        return _err(e)
+
+
+@tool
+def client_game_plan() -> dict:
+    """The game the user is in right now (champ select or loading screen / in game), read from the local client: all known picks, my lane opponent and the OP.GG matchup win rate, both team compositions (AD/AP, tanks, healing, hard CC), every visible player's rank, recent record, scout score, playstyle tags, champion mastery, premades and the user's notes, the build adjusted to the enemy composition, and rule-based tips. Use it for "how should I play this game / what should I build / who is the weak lane"."""
+    from lol_review import assistant, gameplan
+
+    try:
+        a = assistant.get()
+        plan = a.state.get("plan")
+        ctx = gameplan.context(a.state)
+        if not ctx:
+            return {"error": "现在不在英雄选择或对局中（或者还没有锁定英雄）。"}
+        b = plan["build"] if plan and plan.get("context", {}).get("enemy_cids") == ctx["enemy_cids"] else gameplan.build(ctx["me"]["champion_id"], ctx["me"]["position"], ctx["enemy_cids"])
+        slim_build = {"core": [i["name"] for i in b["core"]], "boots": [i["name"] for i in b["boots"]], "boots_why": b["boots_why"],
+                      "adjust": [{"item": x["item"]["name"], "why": x["why"]} for x in b["adjust"]], "late": [i["name"] for i in b["late"]], "source": b["source"]}
+        return {**{k: v for k, v in ctx.items() if k != "enemy_cids"}, "build": slim_build, "tips": gameplan.rules(ctx, b),
+                "note": "选人阶段看不到对方玩家，只有英雄；进入加载界面后才有十人战绩。"}
+    except Exception as e:
+        return _err(e)
+
+
+@tool
+def opgg_champion(champion: str, position: str = "", mode: str = "ranked") -> dict:
+    """OP.GG statistics for one champion (Chinese or English name): tier, win/pick/ban rate, most popular runes, summoner spells, items, skill order, and the hardest/easiest matchups. position: TOP/JUNGLE/MID/ADC/SUPPORT (empty = main position). mode: ranked or aram. Global Emerald+ data for the current patch."""
+    from lol_review import opgg
+
+    try:
+        cid = opgg.champion_id(champion)
+        if cid is None:
+            return {"error": f"找不到英雄 {champion}"}
+        d = opgg.champion(cid, position, mode=mode)
+
+        def names(xs):
+            return [x["name"] for x in xs]
+
+        return {
+            "champion": d["name"], "position": d["position"], "stats": d["stats"], "source": "OP.GG（全球 翡翠+）",
+            "runes": [{"keystone": r["primary"][0]["name"], "primary": names(r["primary"]), "secondary": names(r["secondary"]),
+                       "win_rate": r["win_rate"], "pick_rate": r["pick_rate"]} for r in d["runes"][:2]],
+            "spells": [{"spells": names(s["spells"]), "win_rate": s["win_rate"], "pick_rate": s["pick_rate"]} for s in d["spells"]],
+            "core_items": [{"items": names(b["items"]), "win_rate": b["win_rate"], "pick_rate": b["pick_rate"]} for b in d["core_items"][:3]],
+            "boots": [{"items": names(b["items"]), "win_rate": b["win_rate"]} for b in d["boots"][:2]],
+            "skill_order": d["skills"][0]["order"] if d["skills"] else None,
+            "hardest_matchups": [{"vs": c["name"], "win_rate": c["win_rate"], "games": c["play"]} for c in d["counters"]["hard"][:5]],
+            "easiest_matchups": [{"vs": c["name"], "win_rate": c["win_rate"], "games": c["play"]} for c in d["counters"]["easy"][:5]],
+            "note": d["note"],
+        }
+    except Exception as e:  # OP.GG is unofficial; never break the agent
         return _err(e)
 
 

@@ -268,6 +268,210 @@ form.ask textarea:focus-visible{outline:none}
   .fields{grid-template-columns:1fr}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- client assistant (local League client, Akari-style) ---------- */
+.clientnav{margin:0 12px 10px;display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--side-ink);border-radius:10px;height:38px;padding:0 12px;cursor:pointer;font-weight:700;font-size:14px}
+.clientnav:hover{background:rgba(255,255,255,.09)}
+.clientnav.active{background:rgba(227,176,75,.14);border-color:rgba(227,176,75,.4)}
+.clientnav .st{margin-left:auto;font:500 11px var(--mono);color:var(--side-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+.cdot{width:8px;height:8px;border-radius:50%;background:#7f8f8b;flex:none}
+.cdot.on{background:#5fc38b;box-shadow:0 0 0 3px rgba(95,195,139,.2)}
+.cdot.busy{background:#e3b04b;box-shadow:0 0 0 3px rgba(227,176,75,.22)}
+section.client{display:none;flex-direction:column;min-height:0;grid-column:2 / -1}
+.app.client-on section.chat,.app.client-on aside.rail{display:none!important}
+.app.client-on section.client{display:flex}
+.ctabs{display:flex;gap:4px;padding:10px 22px 0;border-bottom:1px solid var(--rule);overflow-x:auto}
+.ctab{background:transparent;border:0;border-bottom:2px solid transparent;padding:8px 12px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+.ctab.on{color:var(--ink);border-bottom-color:var(--gold);font-weight:700}
+.cbody{flex:1;overflow-y:auto;padding:20px 22px 28px}
+.cbody>*{max-width:1100px;margin-left:auto;margin-right:auto}
+.cpanel{background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);margin-bottom:16px}
+.cpanel h3{margin:0 0 10px;font:900 16px var(--display);display:flex;align-items:center;gap:10px}
+.cpanel h3 small{font:500 12px var(--sans);color:var(--muted)}
+.cpanel p{margin:6px 0;color:var(--muted);font-size:14px}
+.cpanel ol{margin:6px 0;padding-left:20px;color:var(--muted);font-size:14px}
+.teams{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.team h4{margin:0 0 8px;font:700 13px var(--sans);letter-spacing:.06em;color:var(--muted);display:flex;align-items:center;gap:8px}
+.team h4 i{width:10px;height:10px;border-radius:3px;background:#4a7fc2}
+.team.red h4 i{background:#c25b4a}
+.pcards{display:flex;flex-direction:column;gap:8px}
+.pcard{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;background:var(--bg);border:1px solid var(--rule);border-radius:12px;padding:10px}
+.pcard.self{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+.pcard .ic{width:44px;height:44px;border-radius:10px;background:var(--bg-2);overflow:hidden;display:grid;place-items:center;font:700 12px var(--sans);color:var(--muted)}
+.pcard .ic img{width:100%;height:100%;object-fit:cover}
+.pcard .top{display:flex;align-items:baseline;gap:8px;min-width:0;flex-wrap:wrap}
+.pcard .nm{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.pcard .nm small{font:11px var(--mono);color:var(--muted);font-weight:400}
+.pcard .pos{font:11px var(--mono);color:var(--muted)}
+.pcard .rk{font-size:12.5px;color:var(--gold);font-weight:700}
+.pcard .line{font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:2px;font-variant-numeric:tabular-nums}
+.pcard .line b{color:var(--ink);font-weight:700}
+.wl{display:flex;gap:3px;margin-top:6px;flex-wrap:wrap}
+.wl span{width:16px;height:16px;border-radius:4px;font:700 9.5px/16px var(--mono);text-align:center;color:#fff;background:#b8534a}
+.wl span.w{background:#2f8a57}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.tag{font-size:11.5px;border-radius:999px;padding:1px 8px;background:var(--bg-2);color:var(--muted);border:1px solid var(--rule)}
+.tag.good{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.tag.bad{background:var(--err-soft);color:var(--err);border-color:transparent}
+.tag.warn{background:var(--gold-soft);color:var(--gold);border-color:transparent}
+.tag.info{background:var(--tool-soft);color:var(--tool);border-color:transparent}
+.muted{color:var(--muted);font-size:13px}
+.bans{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:12.5px;color:var(--muted)}
+.bans img{width:26px;height:26px;border-radius:6px;filter:grayscale(1);opacity:.8}
+.elog{display:flex;flex-direction:column;gap:4px;font-size:13px;max-height:220px;overflow-y:auto}
+.elog div{display:flex;gap:10px}
+.elog time{font:11.5px var(--mono);color:var(--muted);flex:none;padding-top:2px}
+.elog .ok{color:var(--ok)}.elog .warn{color:var(--gold)}.elog .error{color:var(--err)}
+.opts{display:flex;flex-direction:column;gap:2px}
+.opt{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--rule)}
+.opt:last-child{border-bottom:0}
+.opt .tx{flex:1;min-width:0}
+.opt .tx b{display:block;font-size:14px}
+.opt .tx span{font-size:12.5px;color:var(--muted)}
+.opt input[type=number]{width:72px;font:14px var(--mono);background:var(--bg);color:var(--ink);border:1px solid var(--rule);border-radius:8px;padding:5px 8px}
+.sw{position:relative;width:42px;height:24px;flex:none}
+.sw input{opacity:0;width:0;height:0;position:absolute}
+.sw i{position:absolute;inset:0;border-radius:999px;background:var(--rule);transition:background .15s;cursor:pointer}
+.sw i::after{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.sw input:checked+i{background:var(--gold)}
+.sw input:checked+i::after{transform:translateX(18px)}
+.sw input:focus-visible+i{outline:2px solid var(--gold);outline-offset:2px}
+.chlist{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.chpick{display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--rule);border-radius:999px;padding:2px 4px 2px 2px;font-size:13px}
+.chpick img{width:22px;height:22px;border-radius:50%}
+.chpick em{font:600 11px var(--mono);color:var(--gold);font-style:normal}
+.chpick button{border:0;background:transparent;color:var(--muted);cursor:pointer;width:20px;height:20px;border-radius:50%}
+.chpick button:hover{color:var(--err)}
+.chlist input{font:13px var(--sans);color:var(--ink);background:var(--bg);border:1px dashed var(--rule);border-radius:999px;padding:4px 12px;width:160px}
+.htable{overflow-x:auto;border:1px solid var(--rule);border-radius:12px}
+.htable table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+.htable th,.htable td{padding:8px 12px;border-bottom:1px solid var(--rule);text-align:left;white-space:nowrap}
+.htable th{background:var(--bg);font-size:12px;color:var(--muted);font-weight:500}
+.htable tr:last-child td{border-bottom:0}
+.htable .res{font-weight:700}.htable .res.w{color:var(--ok)}.htable .res.l{color:var(--err)}
+.htable td.ch img{vertical-align:middle;margin-right:8px}
+.htable td.ch img{width:24px;height:24px;border-radius:6px}
+.lastgame{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+@media (min-width:1181px){.app.client-on{grid-template-columns:268px minmax(0,1fr)}}
+@media (max-width:1180px){.app.client-on section.client{grid-column:2}}
+@media (max-width:860px){.teams{grid-template-columns:1fr}}
+@media (max-width:760px){.app.client-on section.client{grid-column:1}.cbody{padding:16px}.ctabs{padding:8px 16px 0}}
+
+.pcard .meta{display:flex;align-items:center;gap:8px;margin-top:5px;font:11.5px var(--mono);color:var(--muted)}
+.sbar{flex:1;max-width:160px;height:6px;border-radius:3px;background:var(--bg-2);overflow:hidden}
+.sbar i{display:block;height:100%;background:var(--muted);border-radius:3px}
+.sbar i.hi{background:var(--ok)}.sbar i.lo{background:var(--err)}
+.ms{font:700 10.5px/16px var(--mono);color:var(--gold);border:1px solid var(--gold);border-radius:4px;padding:0 4px}
+.pm{font:700 10.5px/16px var(--mono);border-radius:4px;padding:0 5px;color:#111;background:var(--gold)}
+.pm.g2{background:#b98ef0}.pm.g3{background:#6fd3c2}
+.tag.note{background:var(--gold);color:var(--gold-ink);border-color:transparent}
+.csel{font:13.5px var(--sans);color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:8px;padding:5px 8px;height:32px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.row .grow{flex:1;min-width:180px}
+.nlist{display:flex;flex-direction:column;gap:8px}
+.nitem{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;align-items:start;padding:8px 0;border-bottom:1px solid var(--rule)}
+.nitem:last-child{border-bottom:0}
+.nitem .ic{width:36px;height:36px;border-radius:8px;overflow:hidden;background:var(--bg-2)}
+.nitem .ic img{width:100%;height:100%}
+.nitem .who{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:13.5px}
+.nitem .who small{color:var(--muted);font:11.5px var(--mono)}
+.side-ally{color:#4a7fc2;font-weight:700}.side-enemy{color:#c25b4a;font-weight:700}
+.nedit{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:6px}
+.qt{font-size:12px;border-radius:999px;padding:2px 9px;background:var(--bg);color:var(--muted);border:1px solid var(--rule);cursor:pointer}
+.qt.on{background:var(--gold);color:var(--gold-ink);border-color:var(--gold);font-weight:700}
+.nedit input{flex:1;min-width:160px;font:13px var(--sans);color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:8px;padding:5px 10px}
+.nedit .sv{font-size:11.5px;color:var(--ok)}
+.prof{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.prof .blk{flex:1;min-width:220px}
+.prof h4{margin:0 0 6px;font:700 13px var(--sans);color:var(--muted)}
+.ranks{display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px}
+.ranks b{color:var(--gold)}
+.mlist{display:flex;flex-wrap:wrap;gap:8px}
+.mchip{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--rule);border-radius:10px;padding:3px 8px 3px 3px;font-size:12.5px}
+.mchip img{width:26px;height:26px;border-radius:6px}
+.mchip small{color:var(--muted);font:11px var(--mono)}
+.lpc{width:100%;height:auto;display:block}
+.lpc .grid{stroke:var(--rule);stroke-width:1}
+.lpc .glab{fill:var(--muted);font:11px var(--mono)}
+.lpc .line{fill:none;stroke:var(--gold);stroke-width:2}
+.lpc .w{fill:var(--ok)}.lpc .l{fill:var(--err)}.lpc .n{fill:var(--gold)}
+.tips{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.tips li{display:flex;gap:8px;align-items:baseline}
+.tips .tag{flex:none}
+.planai{border-top:1px solid var(--rule);margin-top:12px;padding-top:10px;font-size:14px}
+.planai p{color:var(--ink)}
+.brow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--rule);font-size:13.5px}
+.brow:last-of-type{border-bottom:0}
+.brow>b{width:36px;color:var(--muted);font-weight:500}
+.its2{display:flex;gap:4px}
+.its2 img{width:30px;height:30px;border-radius:6px}
+.board td{vertical-align:middle}
+.board .pl{display:flex;align-items:center;gap:6px}
+.board .pl>img{width:28px;height:28px;border-radius:6px}
+.board .its{display:flex;gap:2px}
+.board .its img{width:22px;height:22px;border-radius:4px}
+.board .sp img{width:18px;height:18px;border-radius:4px;display:block}
+.board .sp{display:grid;grid-template-columns:18px 18px;gap:2px}
+.board .dmg{display:flex;align-items:center;gap:6px}
+.board .dmg i{display:block;height:6px;border-radius:3px;background:#c25b4a;min-width:2px}
+.board .badge{font:700 10.5px/16px var(--mono);border-radius:4px;padding:0 5px;background:var(--gold);color:var(--gold-ink)}
+.board .badge.ACE{background:#8a7fd0;color:#fff}
+.board tr.mine td{background:var(--gold-soft)}
+.board .thead td{font-weight:700;background:var(--bg)}
+.htable tr.det>td{padding:0;background:var(--bg);max-width:0;white-space:normal}
+.htable tr.det>td>.htable{border:0;border-radius:0}
+.board th,.board td{padding:6px 10px}
+/* ---------- OP.GG ---------- */
+.ogbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.ogbar select,.ogbar input{font:13.5px var(--sans);color:var(--ink);background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:6px 10px;height:34px}
+.ogbar input{flex:1;min-width:140px;max-width:260px}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--rule);border-radius:9px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;border-radius:6px;padding:4px 12px;cursor:pointer;color:var(--muted);font-size:13.5px}
+.seg button.on{background:var(--gold);color:var(--gold-ink);font-weight:700}
+.seg.pos{margin-bottom:12px}
+.seg.sm{margin-top:8px}.seg.sm button{padding:2px 10px;font-size:12.5px}
+.tb{display:inline-block;min-width:30px;text-align:center;font:700 11.5px/20px var(--mono);border-radius:5px;color:#fff;background:#7f8f8b}
+.tb.t0{background:#c2410c}.tb.t1{background:#2563eb}.tb.t2{background:#0d9488}.tb.t3{background:#65a30d}.tb.t4{background:#a16207}.tb.t5{background:#78716c}
+.ogt tbody tr{cursor:pointer}
+.ogt tbody tr:hover,.ogt tbody tr:focus{background:var(--bg)}
+.up{color:var(--ok);font-weight:700}.down{color:var(--err);font-weight:700}
+.oghead{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.oghead img.big{width:64px;height:64px;border-radius:14px}
+.oghead .ttl{flex:1;min-width:220px}
+.oghead h3{margin:0 0 4px}
+.oghead .line{font-size:13px;color:var(--muted);display:flex;gap:4px 14px;flex-wrap:wrap}
+.oghead .line b{color:var(--ink)}
+.oggrid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.oggrid h4{margin:12px 0 6px;font:700 12.5px var(--sans);color:var(--muted);letter-spacing:.04em}
+.oggrid h4:first-of-type{margin-top:0}
+.rune{border:1px solid var(--rule);border-radius:12px;padding:10px 12px;margin-bottom:10px;background:var(--bg)}
+.rrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rrow img{width:30px;height:30px;border-radius:50%;background:#0b1414}
+.rrow img.key{width:40px;height:40px}
+.rrow img.st{width:24px;height:24px;background:transparent}
+.rrow .sep{width:1px;height:26px;background:var(--rule);margin:0 4px}
+.rnames{font-size:12px;color:var(--muted);margin:6px 0}
+.rfoot{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rfoot .btn{margin-left:auto}
+.rl{font-size:12.5px;color:var(--muted);white-space:nowrap}.rl b{color:var(--ink)}
+.irow{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+.irow:last-child{border-bottom:0}
+.irow.wrap{gap:4px}
+.irow img.it,.ctr img.it{width:32px;height:32px;border-radius:7px;background:#0b1414}
+.irow .nm2{font-size:13px;flex:1;min-width:120px}
+.irow .btn{margin-left:auto}
+.arr{color:var(--muted)}
+.skills{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px}
+.skills span{width:24px;height:24px;border-radius:6px;font:700 12px/24px var(--mono);text-align:center;background:var(--bg-2);color:var(--muted)}
+.skills .kQ{background:#2563eb;color:#fff}.skills .kW{background:#0d9488;color:#fff}.skills .kE{background:#a16207;color:#fff}.skills .kR{background:#c2410c;color:#fff}
+.ctrs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ctr{display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:13.5px}
+.ctr span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctr small{color:var(--muted);font-size:11px}
+.ctr:hover span{text-decoration:underline}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+@media (max-width:1000px){.oggrid{grid-template-columns:1fr}}
+@media (max-width:520px){.ctrs{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -359,6 +563,7 @@ form.ask textarea:focus-visible{outline:none}
     <button class="newchat" id="newchat" type="button">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg>新对话
     </button>
+    <button class="clientnav" id="clientnav" type="button"><span class="cdot"></span>客户端助手<span class="st">未连接</span></button>
     <h3>历史对话</h3>
     <div class="convs" id="convs"><div class="none">还没有对话</div></div>
     <button class="me" id="me" type="button" aria-label="个人资料与长期记忆">
@@ -390,6 +595,24 @@ form.ask textarea:focus-visible{outline:none}
     <header><h2>AGENT 活动</h2><small id="trace-id"></small><button class="iconbtn close" type="button" id="rail-close" aria-label="关闭">✕</button></header>
     <div class="steps" id="steps"><div class="empty">发送问题后，这里按时间顺序显示调用的工具、返回结果、记下的记忆和 token 用量。</div></div>
   </aside>
+  <section class="client" aria-label="客户端助手">
+    <div class="chathead">
+      <button class="iconbtn menu" id="c-menu" type="button" aria-label="打开侧栏"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <h1>客户端助手</h1>
+      <span class="mode" id="c-mode"><i></i><span>检测客户端…</span></span>
+      <button class="iconbtn" id="c-theme" type="button" aria-label="切换深浅色"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    </div>
+    <div class="ctabs" role="tablist">
+      <button class="ctab on" type="button" data-ctab="live">实时对局</button>
+      <button class="ctab" type="button" data-ctab="auto">自动化</button>
+      <button class="ctab" type="button" data-ctab="history">我的战绩</button>
+      <button class="ctab" type="button" data-ctab="coach">AI 教练</button>
+      <button class="ctab" type="button" data-ctab="search">查玩家</button>
+      <button class="ctab" type="button" data-ctab="notes">玩家备注</button>
+      <button class="ctab" type="button" data-ctab="opgg">OP.GG</button>
+    </div>
+    <div class="cbody" id="c-body"></div>
+  </section>
 </div>
 
 <dialog id="dlg" aria-labelledby="dlg-title">
@@ -445,13 +668,17 @@ let current = null, profile = null, busy = false;
 
 /* ---------- theme ---------- */
 (() => {
-  try { const t = localStorage.getItem('riftlens-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
-  $('theme').addEventListener('click', () => {
+  let saved = null; try { saved = localStorage.getItem('riftlens-theme'); } catch (e) {}
+  const t = saved || (new URLSearchParams(location.search).has('desktop') ? 'dark' : null);
+  if (t) document.documentElement.dataset.theme = t;
+  const toggle = () => {
     const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     const next = cur === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = next;
     try { localStorage.setItem('riftlens-theme', next); } catch (e) {}
-  });
+  };
+  $('theme').addEventListener('click', toggle);
+  $('c-theme').addEventListener('click', toggle);
 })();
 
 let STATUS = null;
@@ -598,11 +825,11 @@ $('convs').addEventListener('dblclick', e => {
   inp.addEventListener('blur', () => done(true));
 });
 function showWelcome(){
-  const bound = profile && profile.riot_ids.length;
-  const me = bound ? profile.riot_ids[0] : 'Player#TAG';
+  const bound = (profile && profile.riot_ids.length) || (typeof CS !== 'undefined' && CS && CS.connected);
+  const me = profile && profile.riot_ids.length ? profile.riot_ids[0] : 'Player#TAG';
   log.innerHTML = `<div class="welcome">
     <h2>把一局比赛拆开看：哪里赢，哪里输，下一局怎么打</h2>
-    <p>输入 Riot ID 复盘对局，或者问对位、打法问题。对局数据来自 Riot 官方接口，由确定性工具计算；知识类问题会联网查数据网站和玩家讨论，并附上来源。右侧实时显示每一步调用了什么。</p>
+    <p>打开英雄联盟客户端后可以直接复盘自己的对局（任何服务器，包括国服），也可以输入 Riot ID 查别人，或者问对位、打法问题。对局数据由确定性工具计算；知识类问题会联网查数据网站和玩家讨论，并附上来源。右侧实时显示每一步调用了什么。</p>
     ${STATUS && STATUS.riot_key && !STATUS.riot_key.configured ? '<div class="keywarn">还没有配置 Riot API key：对位知识问答可以直接用，查询对局需要先填写 key。<button type="button" class="go-key">填写 key</button></div>' : ''}
     ${bound ? '' : '<div class="setup">先绑定你的账号，之后直接说“复盘我最近一局”就行。<button type="button" id="go-profile">设置账号</button></div>'}
     <div class="cards">
@@ -656,13 +883,13 @@ function usageCard(u){
     `<div><b>${u.turns ?? '-'}</b><span>模型轮数</span></div><div><b>${u.duration_s ?? '-'}s</b><span>耗时</span></div>` +
     `<div><b>${f(u.cache_read_tokens)}</b><span>其中缓存读取</span></div><div><b>$${(u.cost_usd_list_price || 0).toFixed(3)}</b><span>标价估算</span></div></div>`;
 }
-async function ask(text){
+async function ask(text, tone){
   busy = true; send.disabled = true; clearSteps();
   addMsg('user', esc(text));
   const bot = addMsg('bot', '<div class="chips"></div><div class="thinking"><span class="pulse"></span><span>正在分析…</span></div><div class="body"></div>');
   const chips = bot.querySelector('.chips'), thinking = bot.querySelector('.thinking'), body = bot.querySelector('.body');
   try {
-    const res = await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text, conversation_id: current})});
+    const res = await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text, conversation_id: current, tone: tone || null})});
     const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = '';
     while (true) {
       const {value, done} = await reader.read(); if (done) break;
@@ -729,11 +956,571 @@ $('rail-close').addEventListener('click', () => setRail(false));
 (() => { let on = true; try { on = localStorage.getItem('riftlens-rail') !== '0'; } catch (e) {} setRail(wide() ? on : false); })();
 matchMedia('(min-width: 1181px)').addEventListener('change', () => { let on = true; try { on = localStorage.getItem('riftlens-rail') !== '0'; } catch (e) {} setRail(wide() ? on : false); });
 
+/* ---------- client assistant (local League client) ---------- */
+let CS = null, csVersion = -1, cTab = 'live', CHAMPS = null, historyRows = null, PROFILE = null, NOTES = null, RUNECFG = null;
+let pickPos = '', banPos = '', deferred = false;
+const TONES = [['objective','客观分析'],['roast','毒舌喷子'],['praise','专业夸夸']];
+const QUICK = ['好队友','大腿','会指挥','心态好','演员','挂机','喷子','送人头','抢资源','开黑车队'];
+const POS5 = [['TOP','上单'],['JUNGLE','打野'],['MIDDLE','中单'],['BOTTOM','下路'],['UTILITY','辅助']];
+const IS_DESKTOP = new URLSearchParams(location.search).has('desktop');
+const toneSel = (id, val) => `<select class="csel" id="${id}" aria-label="复盘风格">${TONES.map(([v, t]) => `<option value="${v}" ${v === val ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+async function loadNotes(){ try { const d = await (await fetch('/api/notes')).json(); NOTES = Object.fromEntries(d.notes.map(n => [n.puuid, n])); } catch (e) { NOTES = {}; } }
+function noteEditor(puuid, name, game){
+  const n = (NOTES || {})[puuid] || {}, tags = n.tags || [];
+  return `<div class="nedit" data-puuid="${esc(puuid)}" data-name="${esc(name || '')}" data-game="${esc(game ? JSON.stringify(game) : '')}">
+    ${QUICK.map(t => `<button type="button" class="qt${tags.includes(t) ? ' on' : ''}">${t}</button>`).join('')}
+    <input type="text" maxlength="200" placeholder="写点备注，下次遇到会提醒你" value="${esc(n.note || '')}" aria-label="备注"><span class="sv"></span></div>`;
+}
+async function saveNote(box){
+  const tags = [...box.querySelectorAll('.qt.on')].map(b => b.textContent), note = box.querySelector('input').value;
+  const game = box.dataset.game ? JSON.parse(box.dataset.game) : null;
+  const r = await fetch('/api/notes/' + encodeURIComponent(box.dataset.puuid), {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name: box.dataset.name, note, tags, game})});
+  if (r.ok) { const d = await r.json(); NOTES = NOTES || {}; if (d.deleted) delete NOTES[box.dataset.puuid]; else NOTES[box.dataset.puuid] = d; const sv = box.querySelector('.sv'); sv.textContent = '已保存'; setTimeout(() => sv.textContent = '', 1500); }
+}
+const POS = {TOP:'上单', JUNGLE:'打野', MIDDLE:'中单', BOTTOM:'下路', UTILITY:'辅助'};
+const icon = id => id ? `<img alt="" loading="lazy" onerror="this.remove()" src="/api/client/asset?path=/lol-game-data/assets/v1/champion-icons/${id}.png">` : '';
+const clock = t => new Date(t * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+function clientOn(){ return $('app').classList.contains('client-on'); }
+function showClient(on){
+  $('app').classList.toggle('client-on', on); $('clientnav').classList.toggle('active', on); $('app').classList.remove('open');
+  try { history.replaceState(null, '', on ? '#client' : '#chat'); } catch (e) {}
+  if (on) renderClient(true);
+}
+$('clientnav').addEventListener('click', () => { showView('chat'); showClient(true); });
+$('c-menu').addEventListener('click', () => $('app').classList.toggle('open'));
+document.querySelectorAll('[data-ctab]').forEach(b => b.addEventListener('click', () => {
+  cTab = b.dataset.ctab; document.querySelectorAll('[data-ctab]').forEach(x => x.classList.toggle('on', x === b)); renderClient(true);
+}));
+$('newchat').addEventListener('click', () => showClient(false));
+$('convs').addEventListener('click', e => { if (e.target.closest('.conv') && !e.target.closest('.del')) showClient(false); });
+
+function renderNav(){
+  const on = CS && CS.connected, dot = $('clientnav').querySelector('.cdot');
+  dot.className = 'cdot' + (on ? (['ChampSelect','InProgress','GameStart','ReadyCheck'].includes(CS.phase) ? ' busy' : ' on') : '');
+  $('clientnav').querySelector('.st').textContent = on ? CS.phase_text : '未连接';
+  const m = $('c-mode'); m.classList.toggle('live', !!on);
+  m.querySelector('span').textContent = on ? `${CS.me.name}${CS.me.tag ? '#' + CS.me.tag : ''} · ${CS.phase_text}` : '未检测到客户端';
+}
+function cardHTML(p){
+  const c = p.card, name = (c && c.name) || p.name || (p.puuid ? '' : '隐藏的玩家');
+  let body = '';
+  if (!p.puuid) body = '<div class="line">选人阶段看不到这名玩家的信息</div>';
+  else if (!c || c.loading) body = '<div class="line">查询战绩中…</div>';
+  else if (c.error) body = `<div class="line">查询失败：${esc(c.error)}</div>`;
+  else {
+    body = `<div class="line">${c.games ? `<span>近 ${c.games} 局 <b>${Math.round(c.win_rate * 100)}%</b></span><span>KDA <b>${c.kda}</b></span><span>${esc(c.avg)}</span>` : '<span>没有近期对局</span>'}${c.level ? `<span>Lv ${c.level}</span>` : ''}</div>`;
+    if (c.recent.length) body += '<div class="wl">' + c.recent.map(g => `<span class="${g.win ? 'w' : ''}" title="${esc(g.champion + ' ' + g.kda + ' ' + g.queue)}">${g.win ? '胜' : '负'}</span>`).join('') + '</div>';
+    if (c.top_champions.length) body += '<div class="line">常用：' + c.top_champions.map(t => `${esc(t.champion)} ${t.wins}/${t.games}`).join('　') + '</div>';
+    const note = p.note || c.note, ntext = note ? [...(note.tags || []), note.note].filter(Boolean).join(' · ') : '';
+    if (c.tags.length || ntext) body += '<div class="tags">' + (ntext ? `<span class="tag note" title="你之前写的备注">备注：${esc(ntext.slice(0, 40))}</span>` : '') + c.tags.map(t => `<span class="tag ${t.tone}" title="${esc(t.desc || '')}">${esc(t.text)}</span>`).join('') + '</div>';
+    if (c.score != null && p.maxScore) { const pc = Math.round(c.score / p.maxScore * 100); body += `<div class="meta" title="侦察分：由近期场次、胜场和 KDA 算出，只适合和本局其他人比较">侦察分 <span class="sbar"><i class="${pc >= 66 ? 'hi' : pc <= 33 ? 'lo' : ''}" style="width:${pc}%"></i></span>${c.score.toLocaleString()}</div>`; }
+  }
+  const rank = c && c.solo ? `<span class="rk" title="${esc([c.solo.highest && '本赛季最高 ' + c.solo.highest, c.solo.prev_highest && '上赛季最高 ' + c.solo.prev_highest].filter(Boolean).join(' · '))}">${esc(c.solo.text)} ${c.solo.lp}点${c.solo.prev_highest ? ` <small class="muted" style="font-weight:400">上季最高 ${esc(c.solo.prev_highest)}</small>` : ''}</span>` : (c && !c.loading && !c.error && p.puuid ? '<span class="pos">单双排未定级</span>' : '');
+  const extra = (p.mastery && p.mastery.level ? `<span class="ms" title="这个英雄的熟练度 ${(p.mastery.points || 0).toLocaleString()} 点">M${p.mastery.level}</span>` : '') +
+    (p.premade ? `<span class="pm g${p.premade}" title="和同队的人最近一起打过至少 2 局">开黑${p.premade}</span>` : '');
+  return `<div class="pcard${p.me ? ' self' : ''}"><div class="ic">${icon(p.champion_id) || '?'}</div><div style="min-width:0">
+    <div class="top"><span class="nm">${esc(name)}${c && c.tag ? ' <small>#' + esc(c.tag) + '</small>' : ''}</span>${p.champion ? `<span class="pos">${esc(p.champion)}</span>` : ''}${POS[p.position] ? `<span class="pos">${POS[p.position]}</span>` : ''}${rank}${extra}</div>${body}</div></div>`;
+}
+function withMax(list){
+  const m = Math.max(0, ...list.map(p => (p.card && p.card.score) || 0));
+  return list.map(p => ({...p, maxScore: m}));
+}
+function runePanel(cs){
+  if (!cs.locked || !cs.my_champion) return '';
+  const saved = RUNECFG && RUNECFG[String(cs.my_champion)];
+  const mine = cs.my_team.find(p => p.me) || {};
+  return `<div class="cpanel"><h3>${esc(mine.champion || '')} 的符文 <small>已锁定英雄${CS.settings.auto_runes ? '，自动应用已开启' : ''}</small></h3>
+    <p>${saved ? `这个英雄有你保存的默认符文页（${esc(saved.name || '自定义')}），自动应用时优先用它。` : '还没有为这个英雄保存默认符文页。'}</p>
+    <div class="row"><button class="btn primary" type="button" data-tcrunes="${cs.my_champion}" data-pos="${cs.my_position || ''}">应用国服推荐符文</button>
+    <button class="btn" type="button" data-ogopen="${cs.my_champion}" data-ogp="${cs.my_position || ''}">OP.GG 出装和符文</button>
+    <button class="btn" type="button" data-runesave="${cs.my_champion}">把客户端当前符文页设为这个英雄的默认</button>
+    ${saved ? `<button class="btn" type="button" data-runedel="${cs.my_champion}">删除默认</button>` : ''}</div></div>`;
+}
+function lastGameHTML(){
+  const g = CS.last_game;
+  if (!g) return '';
+  if (NOTES === null) { loadNotes().then(() => renderClient(false)); }
+  const ps = g.players || [];
+  return `<div class="cpanel"><h3>上一局 <small>对局 ${g.game_id}，结束于 ${clock(g.ended_at)}</small></h3>
+    <div class="row"><span class="muted grow">${ps.length ? '给这局遇到的人写个备注，下次排到时会在卡片上提醒你。' : ''}</span>${toneSel('lg-tone', CS.settings.review_tone)}
+    <button class="btn primary" type="button" data-review="${g.match_id}" data-tonefrom="lg-tone">复盘这局</button></div>
+    ${ps.length && NOTES !== null ? '<div class="nlist">' + ps.map(x => `<div class="nitem"><div class="ic">${icon(x.champion_id)}</div><div><div class="who"><b>${esc(x.name || '玩家')}</b><small>${esc(x.champion || '')}</small><span class="side-${x.with}">${x.with === 'ally' ? '队友' : '对手'}</span></div>
+      ${noteEditor(x.puuid, x.name, {game_id: g.game_id, champion: x.champion, with: x.with})}</div></div>`).join('') + '</div>' : ''}</div>`;
+}
+function itemRow(items){ return `<span class="its2">${(items || []).map(i => `<img alt="${esc(i.name)}" title="${esc(i.name)}" src="${esc(i.icon)}">`).join('')}</span>`; }
+function planHTML(){
+  const p = CS.plan;
+  if (!p || !CS.settings.game_plan) return '';
+  const b = p.build, c = p.context;
+  const stage = p.stage === 'game' ? '加载界面 · 十人信息齐全' : `选人阶段 · 已知对面 ${c.enemies_known}/5 个英雄（看不到对面是谁，进加载界面后会更新）`;
+  const tips = p.tips.map(t => `<li><span class="tag info">${esc(t.k)}</span><span>${esc(t.t)}</span></li>`).join('');
+  let ai = '';
+  if (p.ai) ai = `<div class="planai">${md(p.ai)}</div>`;
+  else if (p.ai_status === 'running') ai = '<p class="muted" style="margin-top:10px">AI 正在根据这些数据写计划（约 10–30 秒）…</p>';
+  else if (p.ai_status) ai = `<p class="muted" style="margin-top:10px">${esc(p.ai_status)}</p>`;
+  const btn = p.ai_status === 'running' ? '' : `<button class="btn" type="button" id="plan-ai" style="margin-left:auto">${p.ai ? '让 AI 重写' : '让 AI 写一份计划'}</button>`;
+  return `<div class="cpanel"><h3>这把怎么打 <small>${stage}</small>${btn}</h3><ul class="tips">${tips || '<li class="muted">数据还不够，等对面多选几个英雄。</li>'}</ul>${ai}</div>
+    <div class="cpanel"><h3>出装 <small>${esc(b.champion)} · OP.GG 胜率最高的出装，按对面阵容调整</small></h3>
+      ${b.core.length ? `<div class="brow"><b>核心</b>${itemRow(b.core)}<span class="muted">${esc(b.core.map(i => i.name).join(' → '))}</span></div>` : ''}
+      ${b.boots.length ? `<div class="brow"><b>鞋子</b>${itemRow(b.boots.slice(0, 1))}<span>${esc(b.boots[0].name)}</span><span class="muted">${esc(b.boots_why || 'OP.GG 最常用')}</span></div>` : ''}
+      ${b.adjust.map(a => `<div class="brow"><b>针对</b>${itemRow([a.item])}<span>${esc(a.item.name)}</span><span class="muted">${esc(a.why)}</span></div>`).join('')}
+      ${b.starter.length ? `<div class="brow"><b>出门</b>${itemRow(b.starter)}<span class="muted">${esc(b.starter.map(i => i.name).join(' + '))}</span></div>` : ''}
+      <p class="muted" style="margin-top:8px">${esc(p.items_status || (CS.settings.auto_items ? '锁定英雄后会写进游戏商店的推荐装备页' : '自动写入游戏商店已关闭（自动化 → 赛前计划和出装）'))}</p></div>`;
+}
+function liveHTML(){
+  if (!CS || !CS.connected) return `<div class="cpanel"><h3>没有连接到英雄联盟客户端</h3>
+    <ol><li>打开并登录英雄联盟客户端（国服 WeGame、外服 Riot Client 都可以）。</li>
+    <li><b>国服客户端</b>以管理员权限运行，RiftLens 也需要右键“以管理员身份运行”，否则读不到客户端的连接信息。</li>
+    <li>客户端装在不常见的位置时，可以在 <code>.env</code> 里把 <code>LOL_INSTALL_DIR</code> 设为包含 lockfile 的文件夹。</li></ol>
+    <p>连接后会自动检测，不需要刷新。</p></div>` + logHTML();
+  let h = '';
+  const cs = CS.champ_select, ig = CS.in_game;
+  if (ig && ['GameStart','InProgress','Reconnect','WaitingForStats','PreEndOfGame'].includes(CS.phase)) {
+    const order = ig.my_team === 1 ? [1, 0] : [0, 1];
+    const all = withMax([...ig.teams[0], ...ig.teams[1]]), m = (all[0] || {}).maxScore || 0;
+    h += planHTML();
+    h += `<div class="cpanel"><h3>游戏中 <small>${esc(ig.queue || '')} · 对局 ${ig.game_id || ''}</small>${IS_DESKTOP ? '<button class="btn" type="button" data-overlay style="margin-left:auto">悬浮窗（游戏里按 Shift+Tab）</button>' : ''}</h3><div class="teams">` +
+      order.map((i, k) => `<div class="team ${k ? 'red' : ''}"><h4><i></i>${k ? '敌方' : '我方'}</h4><div class="pcards">${ig.teams[i].map(p => cardHTML({...p, maxScore: m})).join('')}</div></div>`).join('') + '</div></div>';
+  } else if (cs && CS.phase === 'ChampSelect') {
+    const enemy = cs.their_team.map(p => `<div class="pcard"><div class="ic">${icon(p.champion_id) || '?'}</div><div><div class="top"><span class="nm">${esc(p.champion || '未选择')}</span></div><div class="line">进入游戏后显示对手战绩</div></div></div>`).join('');
+    const mine = cs.my_team.find(p => p.me);
+    const ogBtn = mine && mine.champion_id ? `<button class="btn primary" type="button" style="margin-left:auto" data-ogopen="${mine.champion_id}" data-ogp="${mine.position}">${esc(mine.champion)} 的 OP.GG 出装</button>` : '';
+    h += `<div class="cpanel"><h3>英雄选择 <small>${esc(cs.timer || '')}</small>${ogBtn}</h3><div class="teams">
+      <div class="team"><h4><i></i>我方</h4><div class="pcards">${withMax(cs.my_team).map(cardHTML).join('')}</div></div>
+      <div class="team red"><h4><i></i>敌方</h4><div class="pcards">${enemy || '<p class="muted">看不到对方阵容</p>'}</div></div></div>
+      ${cs.bans.length ? `<div class="bans">已禁用：${cs.bans.map(icon).join('')}</div>` : ''}</div>`;
+    if (cs.locked && RUNECFG === null) { RUNECFG = {}; fetch('/api/client/rune-configs').then(r => r.json()).then(d => { RUNECFG = d; renderClient(false); }).catch(() => {}); }
+    h += planHTML();
+    h += runePanel(cs);
+  } else {
+    const s = CS.settings, onoff = v => v ? '开' : '关';
+    h += `<div class="cpanel"><h3>${esc(CS.phase_text)}</h3><p>进入英雄选择后，这里会自动列出队友的段位、近期胜率和常用英雄；进入游戏后列出全部 10 名玩家。</p>
+      <p class="muted">自动接受：${onoff(s.auto_accept)} · 自动选英雄：${onoff(s.auto_pick)} · 自动禁英雄：${onoff(s.auto_ban)} · 赛后自动复盘：${onoff(s.auto_review)} · 自动点赞：${onoff(s.auto_honor)}</p></div>`;
+  }
+  h += lastGameHTML();
+  return h + logHTML();
+}
+function logHTML(){
+  const ev = (CS && CS.events) || [];
+  return `<div class="cpanel"><h3>助手日志</h3><div class="elog">${ev.length ? ev.slice().reverse().map(e => `<div><time>${clock(e.t)}</time><span class="${e.kind}">${esc(e.text)}</span></div>`).join('') : '<span class="muted">还没有事件</span>'}</div></div>`;
+}
+function sw(key, title, desc, extra){
+  return `<div class="opt"><span class="tx"><b>${title}</b><span>${desc}</span></span>${extra || ''}<label class="sw"><input type="checkbox" data-set="${key}" ${CS.settings[key] ? 'checked' : ''} aria-label="${title}"><i></i></label></div>`;
+}
+function listIds(key, pos){ return pos ? ((CS.settings[key + '_by_pos'] || {})[pos] || []) : CS.settings[key]; }
+function listSave(key, pos, ids){ return saveSettings(pos ? {[key + '_by_pos']: {...(CS.settings[key + '_by_pos'] || {}), [pos]: ids}} : {[key]: ids}); }
+function posSeg(kind, cur){
+  const by = CS.settings[kind + '_by_pos'] || {};
+  return `<div class="seg sm" style="margin-top:10px">${[['', '通用'], ...POS5].map(([v, t]) => `<button type="button" data-lpos="${kind}" data-v="${v}" class="${v === cur ? 'on' : ''}">${t}${v && (by[v] || []).length ? ' ·' + by[v].length : ''}</button>`).join('')}</div>`;
+}
+function chList(key, pos){
+  const byId = Object.fromEntries((CHAMPS || []).map(c => [c.id, c]));
+  return `<div class="chlist" data-list="${key}" data-pos="${pos || ''}">${listIds(key, pos).map((id, i) => `<span class="chpick">${icon(id)}<em>${i + 1}</em>${esc((byId[id] || {}).name || '#' + id)}<button type="button" data-rm="${id}" aria-label="移除">✕</button></span>`).join('')}
+    <input list="champ-dl" placeholder="${CHAMPS ? '输入英雄名添加' : '连接客户端后可选英雄'}" ${CHAMPS ? '' : 'disabled'} aria-label="添加英雄"></div>`;
+}
+function autoHTML(){
+  if (!CS) return '<div class="cpanel"><p>加载中…</p></div>';
+  return `<div class="cpanel"><h3>对局流程</h3><div class="opts">
+    ${sw('auto_accept', '自动接受对局', '找到对局后自动点“接受”，右侧数字是延迟秒数', `<input type="number" min="0" max="10" step="0.5" data-num="accept_delay" value="${CS.settings.accept_delay}" aria-label="接受延迟（秒）">`)}
+    ${sw('auto_review', '赛后自动复盘', '对局结束后自动打开新对话，让 RiftLens 复盘这一局')}
+    <div class="opt"><span class="tx"><b>复盘风格</b><span>赛后复盘和 AI 教练默认用的语气，每次复盘时也可以临时换</span></span><select class="csel" data-sel="review_tone">${TONES.map(([v, t]) => `<option value="${v}" ${v === CS.settings.review_tone ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+    ${sw('auto_honor', '赛后自动点赞', '对局结束后自动给队友点“友善”赞（每局轮换给谁），默认关闭')}
+    ${sw('query_players', '自动查询玩家战绩', '英雄选择和游戏中查询段位、近期战绩和标签，右侧数字是查询局数', `<input type="number" min="5" max="50" step="5" data-num="history_count" value="${CS.settings.history_count}" aria-label="查询最近几局">`)}
+  </div></div>
+  <div class="cpanel"><h3>自动选英雄 <small>按顺序选第一个没被禁、没被选走的；分到的位置有专属列表时优先用它</small></h3><div class="opts">
+    ${sw('auto_pick', '启用自动选英雄', '轮到你选人时自动选择，右侧数字是延迟秒数（0–5）', `<input type="number" min="0" max="5" step="0.5" data-num="pick_delay" value="${CS.settings.pick_delay}" aria-label="选人延迟（秒）">`)}
+    ${sw('lock_in', '直接锁定', '关闭时只预选，需要你自己点锁定')}
+  </div>${posSeg('pick', pickPos)}${chList('pick', pickPos)}</div>
+  <div class="cpanel"><h3>自动禁英雄 <small>会跳过队友想选的英雄；同样可以按位置设置</small></h3><div class="opts">${sw('auto_ban', '启用自动禁英雄', '轮到你禁用时自动禁用，右侧数字是延迟秒数（0–5）', `<input type="number" min="0" max="5" step="0.5" data-num="ban_delay" value="${CS.settings.ban_delay}" aria-label="禁用延迟（秒）">`)}</div>${posSeg('ban', banPos)}${chList('ban', banPos)}</div>
+  <div class="cpanel"><h3>符文和召唤师技能 <small>锁定英雄后自动设置；你为某个英雄保存过默认符文页时优先用它</small></h3><div class="opts">
+    <div class="opt"><span class="tx"><b>数据来源</b><span>国服：lol.qq.com 的国服统计；OP.GG：按 OP.GG 页选的地区和段位</span></span><select class="csel" data-sel="rune_source"><option value="tencent" ${CS.settings.rune_source === 'tencent' ? 'selected' : ''}>国服推荐</option><option value="opgg" ${CS.settings.rune_source === 'opgg' ? 'selected' : ''}>OP.GG</option></select></div>
+    ${sw('auto_runes', '自动应用符文', '新建一页名为“RiftLens 英雄名”的符文页；符文页满了会替换当前页')}
+    ${sw('auto_spells', '自动设置召唤师技能', '按所选数据来源最常用的召唤师技能')}
+    ${sw('flash_on_f', '闪现放在 F', '关闭时闪现放在 D')}
+  </div></div>
+  <div class="cpanel"><h3>赛前计划和出装 <small>只在选人和加载界面生成，游戏中只显示、不给实时指令</small></h3><div class="opts">
+    ${sw('game_plan', '生成“这把怎么打”', '锁定英雄后按对位、双方阵容和战绩给出建议；进入加载界面看到十个人后再更新一次')}
+    ${sw('auto_items', '出装写进游戏商店', '按对面阵容调整 OP.GG 出装，写成名为“RiftLens 英雄名”的推荐装备页；你自己的其他装备页不会动')}
+    ${sw('plan_ai', '加载界面让 AI 写计划', '用你的 Claude Code 或配置的模型写一份 10 行以内的计划，每局约一次调用')}
+  </div></div>
+  <div class="cpanel"><h3>游戏内悬浮窗 <small>${IS_DESKTOP ? '游戏要设成“无边框”或“窗口”模式，全屏模式下任何程序都画不上去' : '只有桌面版有悬浮窗'}</small></h3><div class="opts">
+    ${sw('overlay_hotkey', 'Shift+Tab 显示 / 隐藏', '只在游戏进行中占用这个快捷键，其他时候不影响')}
+    ${sw('overlay_auto', '进入游戏自动显示', '默认关闭，避免挡住画面')}
+  </div>${IS_DESKTOP ? '<div class="row" style="margin-top:8px"><button class="btn" type="button" data-overlay>现在打开 / 关闭悬浮窗</button></div>' : ''}</div>
+  <datalist id="champ-dl">${(CHAMPS || []).map(c => `<option value="${esc(c.name)}">${esc(c.alias)}</option>`).join('')}</datalist>`;
+}
+function profileHTML(d){
+  if (!d) return '';
+  if (d.error) return `<div class="cpanel"><p>读取个人资料失败：${esc(d.error)}</p></div>`;
+  const rk = (label, r) => `<span>${label} ${r ? `<b>${esc(r.text)} ${r.lp}点</b> <span class="muted">${r.wins}胜 ${r.losses}负${r.highest ? ' · 本赛季最高 ' + esc(r.highest) : ''}${r.prev_highest ? ' · 上赛季最高 ' + esc(r.prev_highest) : ''}${r.prev_end ? ' · 上赛季结束 ' + esc(r.prev_end) : ''}</span>` : '<span class="muted">未定级</span>'}</span>`;
+  const ps = d.playstyle || {}, av = ps.averages || {};
+  return `<div class="cpanel"><h3>${esc(d.name)}<small>#${esc(d.tag)} · ${d.level} 级</small></h3>
+    <div class="ranks" style="flex-direction:column;gap:4px">${rk('单双排', d.solo)}${rk('灵活组排', d.flex)}</div>
+    ${opggHTML(d.opgg)}
+    ${lpChart(d.lp_history || {})}
+    <div class="prof" style="margin-top:12px">
+      <div class="blk"><h4>打法画像 <small class="muted">根据最近 ${ps.games || 0} 局召唤师峡谷对局</small></h4>
+        ${ps.tags && ps.tags.length ? `<div class="tags">${ps.tags.map(t => `<span class="tag ${t.tone}" title="${esc(t.desc)}">${esc(t.text)}</span>`).join('')}</div>
+        <p class="muted">场均 ${av.kills}/${av.deaths}/${av.assists} · 每分钟补刀 ${av.cs_per_min} · 每分钟伤害 ${av.damage_per_min} · 视野 ${av.vision}${av.kill_participation != null ? ' · 参团率 ' + Math.round(av.kill_participation * 100) + '%' : ''}</p>` : '<p class="muted">再多打几局，打法画像至少需要 5 局。</p>'}</div>
+      <div class="blk"><h4>常用英雄</h4><div class="mlist">${(d.champions || []).map(c => `<span class="mchip">${icon(c.champion_id)}${esc(c.champion)} <small>${c.wins}/${c.games} · KDA ${c.kda}</small></span>`).join('') || '<span class="muted">没有数据</span>'}</div></div>
+    </div>
+    ${(d.mastery || []).length ? `<h4 style="margin:12px 0 6px;font:700 13px var(--sans);color:var(--muted)">英雄熟练度</h4><div class="mlist">${d.mastery.map(m => `<span class="mchip">${icon(m.champion_id)}${esc(m.champion)} <small>M${m.level} · ${(m.points || 0).toLocaleString()}</small></span>`).join('')}</div>` : ''}</div>`;
+}
+let LPQ = 'RANKED_SOLO_5x5';
+const TIER_CN = {IRON:'黑铁',BRONZE:'青铜',SILVER:'白银',GOLD:'黄金',PLATINUM:'铂金',EMERALD:'翡翠',DIAMOND:'钻石',MASTER:'大师',GRANDMASTER:'宗师',CHALLENGER:'王者'};
+function opggHTML(o){
+  if (!o) return '';
+  if (o.error) return `<p class="muted">OP.GG：${esc(o.error)}</p>`;
+  return `<h4 style="margin:14px 0 6px;font:700 13px var(--sans);color:var(--muted)">往季段位 <small class="muted" style="font-weight:400">单双排赛季结束时，来自 OP.GG</small></h4>
+    <div class="mlist">${o.previous_seasons.map(x => `<span class="mchip" style="padding:4px 10px"><small>${esc(x.season)}</small> <b>${esc(TIER_CN[x.tier] || x.tier)} ${esc(x.division)}</b> <small>${x.lp}点</small></span>`).join('') || '<span class="muted">OP.GG 没有往季记录</span>'}</div>
+    <div class="row" style="margin-top:8px"><span class="muted">OP.GG 存了 ${o.points} 个 LP 点，已合并进下面的曲线；每局排位结束后 RiftLens 会自动让 OP.GG 刷新一次。</span>
+    <button class="btn" type="button" id="opgg-renew">现在让 OP.GG 刷新</button><span class="muted">${esc(o.url)}</span></div>`;
+}
+const TIER_ZH = ['黑铁','青铜','白银','黄金','铂金','翡翠','钻石','大师'];
+const DIV_ZH = ['IV','III','II','I'];
+function lpChart(hist){
+  const rows = hist[LPQ] || [];
+  const seg = `<div class="seg sm">${[['RANKED_SOLO_5x5','单双排'],['RANKED_FLEX_SR','灵活组排']].map(([v, t]) => `<button type="button" data-lpq="${v}" class="${v === LPQ ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+  const head = `<h4 style="margin:14px 0 6px;font:700 13px var(--sans);color:var(--muted);display:flex;gap:10px;align-items:center">LP 曲线 ${seg}</h4>`;
+  const nOp = rows.filter(r => r.source === 'opgg').length;
+  if (rows.length < 2) return head + `<p class="muted">RiftLens 从${rows.length ? ' ' + new Date(rows[0].t * 1000).toLocaleDateString() + ' ' : '现在'}开始记录你的 LP：开着 RiftLens 每打完一局排位记一个点，打两局以上就会出现曲线。${nOp ? 'OP.GG 只在主页被刷新时才记 LP，之前记得很少；以后每局排位结束 RiftLens 都会让它刷新，曲线会越来越完整。' : '客户端不提供过去的 LP，国服账号在 OP.GG 上也查不到，所以之前的部分补不回来。'}</p>`;
+  const W = 980, H = 230, L = 70, R = 12, T = 10, B = 20;
+  const ys = rows.map(r => r.score), lo = Math.floor((Math.min(...ys) - 30) / 100) * 100, hi = Math.ceil((Math.max(...ys) + 30) / 100) * 100;
+  const x = i => L + (rows.length === 1 ? 0 : i * (W - L - R) / (rows.length - 1)), y = v => T + (hi - v) * (H - T - B) / Math.max(hi - lo, 1);
+  let grid = '';
+  for (let v = lo; v <= hi; v += 100) {
+    const t = Math.min(Math.floor(v / 400), 7), name = t >= 7 ? `大师+ ${v - 2800}` : `${TIER_ZH[t]} ${DIV_ZH[Math.floor((v % 400) / 100)]}`;
+    grid += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/>` + (v < hi ? `<text class="glab" x="${L - 6}" y="${y(v) - 4}" text-anchor="end">${name}</text>` : '');
+  }
+  const pts = rows.map((r, i) => `${x(i).toFixed(1)},${y(r.score).toFixed(1)}`).join(' ');
+  const dots = rows.map((r, i) => { const p = rows[i - 1], res = !p ? 'n' : r.wins > p.wins ? 'w' : r.losses > p.losses ? 'l' : 'n';
+    const delta = p ? r.score - p.score : 0;
+    return `<circle class="${res}" cx="${x(i).toFixed(1)}" cy="${y(r.score).toFixed(1)}" r="4"><title>${new Date(r.t * 1000).toLocaleString()} · ${esc(r.tier)} ${esc(r.division)} ${r.lp}点${p ? `（${delta >= 0 ? '+' : ''}${delta}）` : ''}</title></circle>`; }).join('');
+  const first = rows[0], last = rows[rows.length - 1], d = last.score - first.score;
+  return head + `<svg class="lpc" viewBox="0 0 ${W} ${H}" role="img" aria-label="LP 曲线">${grid}<polyline class="line" points="${pts}"/>${dots}</svg>
+    <p class="muted">共 ${rows.length} 个点（${new Date(first.t * 1000).toLocaleDateString()} 起${nOp ? `，其中 ${nOp} 个来自 OP.GG` : ''}），合计 ${d >= 0 ? '+' : ''}${d} 分 · 绿点赢、红点输，鼠标停在点上看详情</p>`;
+}
+function boardHTML(b){
+  const me = CS && CS.me && CS.me.puuid;
+  const team = t => `<tr class="thead"><td colspan="9"><span class="${t.win ? 'up' : 'down'}">${t.win ? '胜利' : '失败'}</span>　击杀 ${t.kills} · 经济 ${(t.gold / 1000).toFixed(1)}k · 塔 ${t.towers} · 龙 ${t.dragons} · 先锋 ${t.heralds} · 男爵 ${t.barons}</td></tr>` +
+    t.players.map(p => `<tr class="${p.puuid === me ? 'mine' : ''}"><td><span class="pl">${icon(p.champion_id)}<span class="sp">${p.spells.map(s => s ? `<img alt="" src="${esc(s)}">` : '<i></i>').join('')}</span><span><b>${esc(p.name)}</b><br><small class="muted">${esc(p.champion)} · ${p.level}级</small></span></span></td>
+      <td>${p.kills}/${p.deaths}/${p.assists}</td><td>${p.score}${p.badge ? ` <span class="badge ${p.badge}">${p.badge}</span>` : ''}</td>
+      <td><span class="dmg"><i style="width:${Math.round(p.damage / b.max_damage * 70)}px"></i>${(p.damage / 1000).toFixed(1)}k</span></td><td>${(p.taken / 1000).toFixed(1)}k</td>
+      <td>${(p.gold / 1000).toFixed(1)}k</td><td>${p.cs}</td><td>${p.vision}</td><td><span class="its">${p.items.map(i => `<img alt="${esc(i.name)}" title="${esc(i.name)}" src="${esc(i.icon)}">`).join('')}</span></td></tr>`).join('');
+  return `<div class="htable board"><table><thead><tr><th>玩家</th><th>KDA</th><th>评分</th><th>伤害</th><th>承伤</th><th>经济</th><th>补刀</th><th>视野</th><th>装备</th></tr></thead><tbody>${b.teams.map(team).join('')}</tbody></table></div>`;
+}
+async function toggleBoard(btn){
+  const tr = btn.closest('tr'), next = tr.nextElementSibling;
+  if (next && next.classList.contains('det')) { next.remove(); return; }
+  const det = document.createElement('tr'); det.className = 'det'; det.innerHTML = '<td colspan="9"><p class="muted" style="padding:10px">读取计分板…</p></td>'; tr.after(det);
+  const r = await fetch('/api/client/game/' + btn.dataset.board);
+  det.firstChild.innerHTML = r.ok ? boardHTML(await r.json()) : `<p class="muted" style="padding:10px">读取失败：${esc((await r.json()).detail || r.status)}</p>`;
+}
+async function historyHTML(){
+  if (!CS || !CS.connected) return '<div class="cpanel"><p>连接客户端后显示你最近的对局。</p></div>';
+  if (!PROFILE) { const r = await fetch('/api/client/profile'); PROFILE = r.ok ? await r.json() : {error: (await r.json()).detail || r.status}; }
+  if (!historyRows) {
+    const d = await (await fetch('/api/client/matches?count=20')).json();
+    if (d.error) return `<div class="cpanel"><p>读取失败：${esc(d.error)}</p></div>`;
+    historyRows = d.matches;
+  }
+  const when = t => new Date(t).toLocaleString([], {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
+  return profileHTML(PROFILE) + `<div class="cpanel"><h3>最近 ${historyRows.length} 局 <small>从本机客户端读取，不需要 Riot API key</small><span style="margin-left:auto" class="row">${toneSel('h-tone', CS.settings.review_tone)}<button class="btn" type="button" id="h-refresh">刷新</button></span></h3>
+    <div class="htable"><table><thead><tr><th>结果</th><th>英雄</th><th>模式</th><th>KDA</th><th>补刀/分</th><th>时长</th><th>时间</th><th></th></tr></thead><tbody>
+    ${historyRows.map(r => `<tr><td class="res ${r.remake ? '' : r.win ? 'w' : 'l'}">${r.remake ? '重开' : r.win ? '胜利' : '失败'}</td><td class="ch">${icon(r.champion_id)}${esc(r.champion)}</td><td>${esc(r.queue)}</td><td>${r.kda}</td><td>${r.cs_per_min}</td><td>${r.minutes} 分</td><td>${when(r.created)}</td>
+      <td class="row" style="flex-wrap:nowrap"><button class="btn" type="button" data-board="${r.game_id}">计分板</button>${r.remake ? '' : `<button class="btn" type="button" data-review="${r.match_id}" data-tonefrom="h-tone">AI 复盘</button>`}</td></tr>`).join('')}</tbody></table></div></div>`;
+}
+
+/* ---------- AI coach (multi-game analysis), player search, notes ---------- */
+const COACH = {pos: '', count: 50};
+function coachKey(){ return COACH.pos || 'ALL'; }
+function coachCache(){ try { return JSON.parse(localStorage.getItem('riftlens-coach') || '{}'); } catch (e) { return {}; } }
+function coachHTML(){
+  const prev = coachCache()[coachKey()];
+  let fresh = '', stale = false;
+  if (prev && historyRows) { const n = historyRows.findIndex(r => r.match_id === prev.newest); stale = n < 0 || n >= 5; fresh = n < 0 ? '之后新打了很多局' : n ? `之后新打了 ${n} 局` : '之后还没有新对局'; }
+  return `<div class="cpanel"><h3>AI 教练 <small>分析你最近的排位（单双排 + 灵活组排），找出强项、弱项和最该改进的一点</small></h3>
+    <div class="row"><div class="seg">${[['', '全部位置'], ...POS5].map(([v, t]) => `<button type="button" data-coachpos="${v}" class="${v === COACH.pos ? 'on' : ''}">${t}</button>`).join('')}</div>
+    <select class="csel" id="co-count" aria-label="分析局数">${[20, 50, 100].map(n => `<option value="${n}" ${n === COACH.count ? 'selected' : ''}>最近 ${n} 局</option>`).join('')}</select>
+    ${toneSel('co-tone', CS ? CS.settings.review_tone : 'objective')}<button class="btn primary" type="button" id="co-go" ${CS && CS.connected ? '' : 'disabled title="连接客户端后可用"'}>开始分析</button></div>
+    ${prev ? `<p>上次分析这个范围是 ${new Date(prev.at).toLocaleString()}，${fresh}。${stale ? '<b>新增了 5 局以上，建议重新分析。</b>' : ''} <button class="btn" type="button" data-openconv="${prev.cid}">查看上次结果</button></p>` : ''}
+    <p class="muted">最多 100 局，按位置筛选时只统计那个位置。数据只来自客户端战绩，没有技能、走位和插眼位置。读取 100 局需要十几秒。</p></div>`;
+}
+async function startCoach(){
+  if (busy) return;
+  if (!historyRows) { try { historyRows = (await (await fetch('/api/client/matches?count=20')).json()).matches; } catch (e) {} }
+  const name = COACH.pos ? Object.fromEntries(POS5)[COACH.pos] : '全部位置', tone = $('co-tone').value;
+  const text = `用 client_coach_data 分析我最近 ${COACH.count} 局排位（位置：${name}${COACH.pos ? '，position=' + COACH.pos : ''}）。先分三段写：强项、弱项、一个最该改进的重点；然后写详细分析，每条结论都注明依据的数据。`;
+  showClient(false); newChat();
+  const done = ask(text, tone);
+  const save = () => { if (!current) return setTimeout(save, 500); const c = coachCache(); c[coachKey()] = {cid: current, at: Date.now(), newest: historyRows && historyRows[0] ? historyRows[0].match_id : ''}; try { localStorage.setItem('riftlens-coach', JSON.stringify(c)); } catch (e) {} };
+  save(); await done;
+}
+let SEARCH = {q: '', res: null, err: ''};
+function searchHTML(){
+  const r = SEARCH.res;
+  let out = `<div class="cpanel"><h3>查玩家 <small>在你所在的大区按“名字#编号”查询，国服也能用</small></h3>
+    <div class="row"><input class="csel grow" id="sr-q" placeholder="例如 红色旗帜#0701" value="${esc(SEARCH.q)}" aria-label="玩家名字#编号"><button class="btn primary" type="button" id="sr-go" ${CS && CS.connected ? '' : 'disabled title="连接客户端后可用"'}>查询</button></div>
+    ${SEARCH.err ? `<p style="color:var(--err)">${esc(SEARCH.err)}</p>` : ''}</div>`;
+  if (r) {
+    out += `<div class="cpanel"><div class="pcards">${cardHTML({puuid: r.puuid, card: r, name: r.name})}</div>
+      <h4 style="margin:12px 0 4px">备注</h4>${noteEditor(r.puuid, r.name + (r.tag ? '#' + r.tag : ''), null)}
+      ${(r.recent || []).length ? `<div class="htable" style="margin-top:12px"><table><thead><tr><th>结果</th><th>英雄</th><th>模式</th><th>KDA</th></tr></thead><tbody>${r.recent.map(g => `<tr><td class="res ${g.win ? 'w' : 'l'}">${g.win ? '胜利' : '失败'}</td><td class="ch">${icon(g.champion_id)}${esc(g.champion)}</td><td>${esc(g.queue)}</td><td>${esc(g.kda)}</td></tr>`).join('')}</tbody></table></div>` : ''}</div>`;
+  }
+  return out;
+}
+async function doSearch(){
+  SEARCH.q = $('sr-q').value.trim(); SEARCH.err = ''; SEARCH.res = null;
+  if (!SEARCH.q) return;
+  $('sr-go').disabled = true; $('sr-go').textContent = '查询中…';
+  if (NOTES === null) await loadNotes();
+  try {
+    const r = await fetch('/api/client/search?riot_id=' + encodeURIComponent(SEARCH.q));
+    const d = await r.json();
+    if (r.ok) SEARCH.res = d; else SEARCH.err = d.detail || '查询失败';
+  } catch (e) { SEARCH.err = '查询失败：' + e.message; }
+  renderClient(true);
+}
+async function notesHTML(){
+  await loadNotes();
+  const list = Object.values(NOTES).sort((a, b) => b.updated - a.updated);
+  return `<div class="cpanel"><h3>玩家备注 <small>${list.length} 人 · 选人和游戏里再遇到时，卡片上会显示你的备注</small></h3>
+    ${list.length ? '<div class="nlist">' + list.map(n => { const g = (n.games || [])[0]; return `<div class="nitem"><div class="ic">${g && g.champion_id ? icon(g.champion_id) : ''}</div><div>
+      <div class="who"><b>${esc(n.name || '玩家')}</b>${g ? `<small>上次遇到：${new Date(g.t * 1000).toLocaleDateString()} · ${esc(g.champion || '')}</small><span class="side-${g.with}">${g.with === 'ally' ? '队友' : '对手'}</span>` : ''}<small>共遇到 ${(n.games || []).length} 次</small>
+      <button class="btn" type="button" data-notedel="${esc(n.puuid)}" style="margin-left:auto;padding:2px 8px;font-size:12px">删除</button></div>
+      ${noteEditor(n.puuid, n.name, null)}</div></div>`; }).join('') + '</div>' : '<p class="muted">还没有备注。对局结束后在“实时对局”里给遇到的人写备注，或者在“查玩家”里查到某人后写。</p>'}</div>`;
+}
+async function renderClient(full){
+  if (!clientOn()) return;
+  const body = $('c-body');
+  const typing = document.activeElement && body.contains(document.activeElement) && ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName);
+  if (cTab === 'live' && typing && !full) { deferred = true; return; }
+  if (cTab === 'live') { deferred = false; body.innerHTML = liveHTML(); }
+  else if (full && cTab === 'auto') {
+    if (!CHAMPS && CS && CS.connected) { try { const r = await fetch('/api/client/champions'); if (r.ok) CHAMPS = await r.json(); } catch (e) {} }
+    body.innerHTML = autoHTML();
+  } else if (full && cTab === 'history') { body.innerHTML = '<div class="cpanel"><p>读取中…（第一次要读最近 30 局，几秒钟）</p></div>'; body.innerHTML = await historyHTML(); }
+  else if (full && cTab === 'coach') body.innerHTML = coachHTML();
+  else if (full && cTab === 'search') body.innerHTML = searchHTML();
+  else if (full && cTab === 'notes') { body.innerHTML = '<div class="cpanel"><p>读取中…</p></div>'; body.innerHTML = await notesHTML(); }
+  else if (full && cTab === 'opgg') { if (!body.querySelector('.ogbar')) body.innerHTML = '<div class="cpanel"><p>读取 OP.GG…</p></div>'; await ogRender(); }
+}
+async function saveSettings(patch){
+  const r = await fetch('/api/client/settings', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(patch)});
+  if (r.ok) { CS.settings = await r.json(); if (cTab === 'auto') renderClient(true); }
+}
+$('c-body').addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.set) saveSettings({[t.dataset.set]: t.checked});
+  if (t.dataset.num) saveSettings({[t.dataset.num]: Number(t.value)});
+  if (t.dataset.sel) saveSettings({[t.dataset.sel]: t.value});
+  const list = t.closest('[data-list]');
+  if (list && t.tagName === 'INPUT' && t.value) {
+    const v = t.value.trim(), key = list.dataset.list, pos = list.dataset.pos, ids = listIds(key, pos);
+    const c = (CHAMPS || []).find(x => x.name === v || x.alias.toLowerCase() === v.toLowerCase());
+    if (c && !ids.includes(c.id)) listSave(key, pos, [...ids, c.id]); else t.value = '';
+  }
+  const ne = t.closest('.nedit'); if (ne && t.tagName === 'INPUT') saveNote(ne);
+  if (t.id === 'co-count') { COACH.count = Number(t.value); renderClient(true); }
+});
+$('c-body').addEventListener('click', e => {
+  const rm = e.target.closest('[data-rm]');
+  if (rm) { const l = rm.closest('[data-list]'); listSave(l.dataset.list, l.dataset.pos, listIds(l.dataset.list, l.dataset.pos).filter(x => x !== Number(rm.dataset.rm))); }
+  const lp = e.target.closest('[data-lpos]');
+  if (lp) { if (lp.dataset.lpos === 'pick') pickPos = lp.dataset.v; else banPos = lp.dataset.v; renderClient(true); }
+  const rv = e.target.closest('[data-review]');
+  if (rv) { const ts = rv.dataset.tonefrom && $(rv.dataset.tonefrom); reviewGame(rv.dataset.review, ts ? ts.value : undefined); }
+  if (e.target.id === 'h-refresh') { historyRows = null; PROFILE = null; renderClient(true); }
+  const qt = e.target.closest('.qt'); if (qt) { qt.classList.toggle('on'); saveNote(qt.closest('.nedit')); }
+  if (e.target.closest('[data-overlay]')) fetch('/api/overlay/toggle', {method:'POST'}).then(async r => { if (!r.ok) alertBox((await r.json()).detail); });
+  const bd = e.target.closest('[data-board]'); if (bd) toggleBoard(bd);
+  const lq = e.target.closest('[data-lpq]'); if (lq) { LPQ = lq.dataset.lpq; renderClient(true); }
+  if (e.target.id === 'plan-ai') { e.target.disabled = true; fetch('/api/client/plan/ai', {method:'POST'}); }
+  if (e.target.id === 'opgg-renew') { const b = e.target; b.disabled = true; b.textContent = '刷新中…';
+    fetch('/api/opgg/renew', {method:'POST'}).then(async r => { const d = await r.json();
+      b.textContent = r.ok ? (d.message || '已请求刷新，几秒后生效') : '失败：' + (d.detail || r.status);
+      if (r.ok) setTimeout(() => { PROFILE = null; if (cTab === 'history') renderClient(true); }, 8000); }); }
+  const tr = e.target.closest('[data-tcrunes]'); if (tr) applyTencentRunes(tr);
+  const rs = e.target.closest('[data-runesave]'); if (rs) runeConfig(rs, 'PUT');
+  const rd = e.target.closest('[data-runedel]'); if (rd) runeConfig(rd, 'DELETE');
+  const co = e.target.closest('[data-coachpos]'); if (co) { COACH.pos = co.dataset.coachpos; renderClient(true); }
+  if (e.target.id === 'co-go') startCoach();
+  const cv = e.target.closest('[data-openconv]'); if (cv) { showClient(false); openConv(cv.dataset.openconv); }
+  if (e.target.id === 'sr-go') doSearch();
+  const nd = e.target.closest('[data-notedel]'); if (nd) fetch('/api/notes/' + encodeURIComponent(nd.dataset.notedel), {method:'DELETE'}).then(() => { delete NOTES[nd.dataset.notedel]; renderClient(true); });
+});
+function reviewGame(matchId, tone){
+  if (busy) return;
+  showClient(false); newChat(); ask(`复盘我这局 ${matchId}`, tone || (CS && CS.settings.review_tone));
+}
+function alertBox(msg){
+  const b = document.createElement('div'); b.className = 'cpanel'; b.style.borderColor = 'var(--err)'; b.textContent = msg;
+  $('c-body').prepend(b); setTimeout(() => b.remove(), 4000);
+}
+async function applyTencentRunes(btn){
+  const old = btn.textContent; btn.disabled = true; btn.textContent = '读取国服数据…';
+  try {
+    const d = await (await fetch('/api/tencent/champion/' + btn.dataset.tcrunes)).json();
+    const lanes = d.lanes || {}, pos = lanes[btn.dataset.pos] ? btn.dataset.pos : Object.keys(lanes).sort((a, b) => lanes[b].games - lanes[a].games)[0];
+    const r = pos && lanes[pos].runes[0];
+    if (!r) throw new Error('没有国服数据');
+    const name = (CHAMPS || []).find(c => c.id === Number(btn.dataset.tcrunes));
+    const res = await fetch('/api/client/apply-runes', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name: (name && name.name) || '', primary_style: r.primary_style, sub_style: r.sub_style, perks: r.perks})});
+    btn.textContent = res.ok ? `已应用：${r.names[0]}（胜率 ${(r.win_rate * 100).toFixed(1)}%）` : '失败：' + ((await res.json()).detail || res.status);
+  } catch (e) { btn.textContent = '失败：' + e.message; }
+  setTimeout(() => { btn.textContent = old; btn.disabled = false; }, 3000);
+}
+async function runeConfig(btn, method){
+  const cid = btn.dataset.runesave || btn.dataset.runedel;
+  const r = await fetch('/api/client/rune-configs/' + cid, {method, headers:{'Content-Type':'application/json'}, body: method === 'PUT' ? JSON.stringify({from_client: true}) : undefined});
+  if (r.ok) { RUNECFG = await r.json(); renderClient(false); } else alertBox('保存失败：' + ((await r.json()).detail || r.status));
+}
+function maybeAutoReview(){
+  const g = CS && CS.last_game;
+  if (!g || !g.auto_review || Date.now() / 1000 - g.ended_at > 900 || busy) return;
+  let done = null; try { done = localStorage.getItem('riftlens-reviewed'); } catch (e) {}
+  if (done === String(g.game_id)) return;
+  try { localStorage.setItem('riftlens-reviewed', String(g.game_id)); } catch (e) {}
+  historyRows = null; PROFILE = null; showView('chat'); reviewGame(g.match_id, g.tone);
+}
+async function pollClient(){
+  for (;;) {
+    try {
+      const r = await fetch('/api/client/state?since=' + csVersion);
+      const prevConn = CS && CS.connected;
+      CS = await r.json(); csVersion = CS.version;
+      renderNav();
+      renderClient(prevConn !== CS.connected && cTab !== 'live');
+      maybeAutoReview();
+    } catch (e) { await new Promise(res => setTimeout(res, 3000)); }
+  }
+}
+pollClient();
+
+/* ---------- OP.GG ---------- */
+const OG = {mode:'ranked', pos:'ALL', q:'', tiers:null, tiersKey:'', champ:null, detail:null, loading:false};
+const OG_POS = [['ALL','全部'],['TOP','上单'],['JUNGLE','打野'],['MID','中单'],['ADC','下路'],['SUPPORT','辅助']];
+const OG_REGIONS = [['global','全球'],['kr','韩服'],['na','北美'],['euw','西欧'],['eune','北欧东欧'],['jp','日服'],['tw','台服'],['vn','越南'],['sg','新加坡'],['br','巴西'],['oce','大洋洲'],['tr','土耳其'],['ru','俄服']];
+const OG_TIERS = [['all','全部段位'],['gold_plus','黄金+'],['platinum_plus','铂金+'],['emerald_plus','翡翠+'],['diamond_plus','钻石+'],['master_plus','大师+'],['challenger','王者']];
+const pct = v => v == null ? '–' : (v * 100).toFixed(1) + '%';
+const tierBadge = t => t == null ? '' : `<span class="tb t${t}">${t === 0 ? 'OP' : 'T' + t}</span>`;
+const img = (src, title, cls) => src ? `<img class="${cls || ''}" alt="${esc(title || '')}" title="${esc(title || '')}" loading="lazy" src="${src}" onerror="this.style.visibility='hidden'">` : '';
+function ogParams(extra){
+  const s = (CS && CS.settings) || {opgg_region:'global', opgg_tier:'emerald_plus'};
+  return new URLSearchParams({region: s.opgg_region, tier: s.opgg_tier, mode: OG.mode, ...(extra || {})}).toString();
+}
+function ogControls(){
+  const s = (CS && CS.settings) || {opgg_region:'global', opgg_tier:'emerald_plus'};
+  const sel = (key, opts, val) => `<select data-og="${key}" aria-label="${key}">${opts.map(([v, t]) => `<option value="${v}" ${v === val ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+  return `<div class="ogbar">
+    <div class="seg">${[['ranked','排位'],['aram','大乱斗']].map(([v, t]) => `<button type="button" data-ogmode="${v}" class="${OG.mode === v ? 'on' : ''}">${t}</button>`).join('')}</div>
+    ${sel('opgg_region', OG_REGIONS, s.opgg_region)}${OG.mode === 'ranked' ? sel('opgg_tier', OG_TIERS, s.opgg_tier) : ''}
+    <input type="search" id="og-q" placeholder="搜索英雄" value="${esc(OG.q)}" aria-label="搜索英雄">
+  </div>`;
+}
+async function ogTiersHTML(){
+  const key = ogParams();
+  if (!OG.tiers || OG.tiersKey !== key) {
+    const r = await fetch('/api/opgg/tiers?' + key);
+    if (!r.ok) return ogControls() + `<div class="cpanel"><p>读取 OP.GG 失败：${esc((await r.json()).detail || r.status)}</p></div>`;
+    OG.tiers = await r.json(); OG.tiersKey = key;
+  }
+  const q = OG.q.trim().toLowerCase();
+  let rows = OG.tiers.rows.filter(r => (OG.mode === 'aram' || OG.pos === 'ALL' || r.position === OG.pos) && (!q || r.name.toLowerCase().includes(q) || r.alias.toLowerCase().includes(q)));
+  if (OG.pos === 'ALL' && OG.mode === 'ranked') rows = rows.filter(r => (r.role_rate || 0) >= 0.1).sort((a, b) => (a.tier ?? 9) - (b.tier ?? 9) || b.win_rate - a.win_rate);
+  const posName = Object.fromEntries(OG_POS);
+  return ogControls() + (OG.mode === 'ranked' ? `<div class="seg pos">${OG_POS.map(([v, t]) => `<button type="button" data-ogpos="${v}" class="${OG.pos === v ? 'on' : ''}">${t}</button>`).join('')}</div>` : '') +
+    `<div class="cpanel"><h3>英雄梯队 <small>OP.GG · ${esc(OG.tiers.version || '')} 版本 · 点击英雄查看出装和符文</small></h3>
+    <div class="htable"><table class="ogt"><thead><tr><th>#</th><th>英雄</th>${OG.mode === 'ranked' ? '<th>位置</th>' : ''}<th>梯队</th><th>胜率</th><th>登场率</th>${OG.mode === 'ranked' ? '<th>禁用率</th>' : ''}<th>场次</th></tr></thead><tbody>
+    ${rows.slice(0, 200).map((r, i) => `<tr data-ogchamp="${r.id}" data-ogp="${r.position}" tabindex="0"><td class="muted">${OG.pos === 'ALL' ? i + 1 : (r.rank ?? i + 1)}</td><td class="ch">${img(r.icon, r.name)}${esc(r.name)}</td>${OG.mode === 'ranked' ? `<td>${posName[r.position] || ''}</td>` : ''}<td>${tierBadge(r.tier)}</td>
+      <td class="${r.win_rate >= 0.52 ? 'up' : r.win_rate < 0.48 ? 'down' : ''}">${pct(r.win_rate)}</td><td>${pct(r.pick_rate)}</td>${OG.mode === 'ranked' ? `<td>${pct(r.ban_rate)}</td>` : ''}<td class="muted">${(r.play || 0).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="8" class="muted">没有匹配的英雄</td></tr>'}
+    </tbody></table></div></div>`;
+}
+function rateLine(x){ return `<span class="rl">胜率 <b>${pct(x.win_rate)}</b> · 选用 ${pct(x.pick_rate)} · ${(x.play || 0).toLocaleString()} 局</span>`; }
+function ogDetailHTML(d){
+  const inCS = CS && CS.connected && CS.phase === 'ChampSelect', canRunes = CS && CS.connected;
+  const posName = Object.fromEntries(OG_POS);
+  const runes = d.runes.map((r, i) => `<div class="rune">
+      <div class="rrow">${img((r.styles[0] || {}).icon, (r.styles[0] || {}).name, 'st')}${r.primary.map((x, k) => img(x.icon, x.name, k ? '' : 'key')).join('')}<i class="sep"></i>${img((r.styles[1] || {}).icon, (r.styles[1] || {}).name, 'st')}${r.secondary.map(x => img(x.icon, x.name)).join('')}</div>
+      <div class="rnames">${esc(r.primary.map(x => x.name).join(' · '))}　|　${esc(r.secondary.map(x => x.name).join(' · '))}　|　${esc(r.shards.map(x => x.name).join(' · '))}</div>
+      <div class="rfoot">${rateLine(r)}<button class="btn ${i ? '' : 'primary'}" type="button" data-runes="${i}" ${canRunes ? '' : 'disabled title="连接客户端后可用"'}>应用到客户端</button></div></div>`).join('');
+  const spells = d.spells.map((s, i) => `<div class="irow">${s.spells.map(x => img(x.icon, x.name, 'it')).join('')}<span class="nm2">${esc(s.spells.map(x => x.name).join(' + '))}</span>${rateLine(s)}
+      <button class="btn" type="button" data-spells="${i}" ${inCS ? '' : 'disabled title="英雄选择阶段可用"'}>应用</button></div>`).join('');
+  const build = (title, rows) => rows.length ? `<h4>${title}</h4>` + rows.map(b => `<div class="irow">${b.items.map((x, k) => (k ? '<span class="arr">›</span>' : '') + img(x.icon, x.name, 'it')).join('')}<span class="nm2">${esc(b.items.map(x => x.name).join(' → '))}</span>${rateLine(b)}</div>`).join('') : '';
+  const sk = d.skills[0];
+  const skills = sk ? `<div class="skills">${sk.order.map((k, i) => `<span class="k${k}" title="${i + 1} 级">${k}</span>`).join('')}</div><div class="muted">${rateLine(sk)}${d.skill_priority[0] ? '　主升顺序：' + d.skill_priority[0].order.join(' > ') : ''}</div>` : '<p class="muted">没有数据</p>';
+  const ctr = (title, list, cls) => `<div><h4>${title}</h4>${list.map(c => `<div class="ctr" data-ogchamp="${c.id}" data-ogp="${d.position}">${img(c.icon, c.name, 'it')}<span>${esc(c.name)}</span><b class="${cls}">${pct(c.win_rate)}</b><small>${c.play.toLocaleString()} 局</small></div>`).join('') || '<p class="muted">样本不足</p>'}</div>`;
+  return ogControls() + `<div class="cpanel oghead"><button class="btn" type="button" id="og-back">‹ 梯队</button>${img(d.icon, d.name, 'big')}
+    <div class="ttl"><h3>${esc(d.name)} <small>${esc(d.title || '')}</small> ${tierBadge(d.stats.tier)}</h3>
+    <div class="line"><span>胜率 <b>${pct(d.stats.win_rate)}</b></span><span>登场 <b>${pct(d.stats.pick_rate)}</b></span>${d.stats.ban_rate != null ? `<span>禁用 <b>${pct(d.stats.ban_rate)}</b></span>` : ''}<span>KDA <b>${d.stats.kda ? d.stats.kda.toFixed(2) : '–'}</b></span><span>${(d.stats.play || 0).toLocaleString()} 局</span></div>
+    ${d.mode === 'ranked' && d.positions.length ? `<div class="seg sm">${d.positions.map(p => `<button type="button" data-ogchamp="${d.id}" data-ogp="${p}" class="${p === d.position ? 'on' : ''}">${posName[p] || p}</button>`).join('')}</div>` : ''}</div></div>
+    <div class="oggrid">
+      <div class="cpanel"><h3>符文</h3>${runes || '<p class="muted">没有数据</p>'}</div>
+      <div class="cpanel"><h3>召唤师技能</h3>${spells}<h3 style="margin-top:14px">技能加点</h3>${skills}</div>
+      <div class="cpanel"><h3>出装</h3>${build('出门装', d.starter_items)}${build('鞋子', d.boots)}${build('核心三件套', d.core_items)}
+        ${d.last_items.length ? '<h4>常见成装</h4><div class="irow wrap">' + d.last_items.map(b => b.items.map(x => img(x.icon, x.name + ' · 胜率 ' + pct(b.win_rate), 'it')).join('')).join('') + '</div>' : ''}</div>
+      <div class="cpanel"><h3>对位 <small>${esc(d.note)}</small></h3><div class="ctrs">${ctr('难打', d.counters.hard, 'down')}${ctr('好打', d.counters.easy, 'up')}</div></div>
+    </div>
+    <p class="muted" style="text-align:center">数据来自 OP.GG（${esc(d.region)} · ${esc(d.tier_filter)}），非官方接口，仅供参考。</p>`;
+}
+async function ogRender(){
+  const body = $('c-body');
+  if (OG.champ) {
+    const r = await fetch(`/api/opgg/champion/${OG.champ.id}?` + ogParams({position: OG.champ.position || ''}));
+    if (!r.ok) { body.innerHTML = ogControls() + `<div class="cpanel"><button class="btn" type="button" id="og-back">‹ 梯队</button><p>读取失败：${esc((await r.json()).detail || r.status)}</p></div>`; return; }
+    OG.detail = await r.json();
+    if (cTab === 'opgg') body.innerHTML = ogDetailHTML(OG.detail);
+  } else {
+    const html = await ogTiersHTML();
+    if (cTab === 'opgg') body.innerHTML = html;
+  }
+}
+function openOpgg(id, position){
+  OG.champ = {id: Number(id), position: position || ''};
+  cTab = 'opgg'; document.querySelectorAll('[data-ctab]').forEach(x => x.classList.toggle('on', x.dataset.ctab === 'opgg'));
+  if (!clientOn()) { showView('chat'); showClient(true); } else renderClient(true);
+}
+async function ogPost(url, payload, btn){
+  const old = btn.textContent; btn.disabled = true; btn.textContent = '应用中…';
+  try {
+    const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    btn.textContent = r.ok ? '已应用 ✓' : '失败：' + ((await r.json()).detail || r.status);
+  } catch (e) { btn.textContent = '失败'; }
+  setTimeout(() => { btn.textContent = old; btn.disabled = false; }, 2500);
+}
+$('c-body').addEventListener('click', e => {
+  if (cTab !== 'opgg' && !e.target.closest('[data-ogopen]')) return;
+  const open = e.target.closest('[data-ogopen]');
+  if (open) { openOpgg(open.dataset.ogopen, open.dataset.ogp); return; }
+  const m = e.target.closest('[data-ogmode]'); if (m) { OG.mode = m.dataset.ogmode; if (OG.champ) OG.champ.position = ''; ogRender(); return; }
+  const p = e.target.closest('[data-ogpos]'); if (p) { OG.pos = p.dataset.ogpos; ogRender(); return; }
+  const c = e.target.closest('[data-ogchamp]'); if (c) { OG.champ = {id: Number(c.dataset.ogchamp), position: c.dataset.ogp === 'NONE' ? '' : c.dataset.ogp}; $('c-body').scrollTop = 0; ogRender(); return; }
+  if (e.target.id === 'og-back') { OG.champ = null; ogRender(); return; }
+  const rb = e.target.closest('[data-runes]');
+  if (rb && OG.detail) { const r = OG.detail.runes[Number(rb.dataset.runes)]; ogPost('/api/client/apply-runes', {name: OG.detail.name, primary_style: r.primary_style, sub_style: r.sub_style, perks: r.perks}, rb); return; }
+  const sb = e.target.closest('[data-spells]');
+  if (sb && OG.detail) {
+    let ids = OG.detail.spells[Number(sb.dataset.spells)].spells.map(x => x.id);
+    if ((CS.settings.flash_on_f && ids[0] === 4) || (!CS.settings.flash_on_f && ids[1] === 4)) ids = [ids[1], ids[0]];
+    ogPost('/api/client/apply-spells', {spells: ids}, sb);
+  }
+});
+$('c-body').addEventListener('focusout', () => setTimeout(() => { if (deferred && cTab === 'live') renderClient(false); }, 50));
+$('c-body').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'sr-q') doSearch(); });
+$('c-body').addEventListener('keydown', e => { if (e.key === 'Enter' && cTab === 'opgg' && e.target.closest('tr[data-ogchamp]')) e.target.click(); });
+$('c-body').addEventListener('input', e => { if (e.target.id === 'og-q') { OG.q = e.target.value; clearTimeout(OG.t); OG.t = setTimeout(async () => { const pos = e.target.selectionStart; await ogRender(); const q = $('og-q'); if (q) { q.focus(); q.setSelectionRange(pos, pos); } }, 200); } });
+$('c-body').addEventListener('change', async e => {
+  const k = e.target.dataset.og; if (!k) return;
+  await saveSettings({[k]: e.target.value}); ogRender();
+});
+
 /* ---------- boot ---------- */
 (async () => {
   try { await loadProfile(); } catch (e) { profile = {display_name:'', avatar:'', avatar_color:'#b98a2c', riot_ids:[], region:'EUW', roles:[], rank:'', goals:'', detail:'标准'}; renderMe(); }
   await loadConvs(); showWelcome();
-  showView(location.hash === '#chat' ? 'chat' : 'home');
+  const hash = location.hash;
+  showView(hash === '#chat' || hash === '#client' ? 'chat' : 'home');
+  if (hash === '#client') showClient(true);
 })();
 </script>
 </body>

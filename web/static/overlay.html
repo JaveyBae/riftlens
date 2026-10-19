@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RiftLens 悬浮窗</title>
+<style>
+:root{color-scheme:dark;--bg:#0d1214;--card:rgba(255,255,255,.045);--rule:rgba(255,255,255,.09);--ink:#eef2f0;--muted:rgba(238,242,240,.58);
+  --win:#4f8fe0;--loss:#e0605a;--ally:#4f8fe0;--enemy:#e0605a;--gold:#e3b04b;--good:#5fc38b;--bad:#e0605a;--info:#7fb4d6;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,monospace;--sans:"Microsoft YaHei UI","PingFang SC",system-ui,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:12px/1.35 var(--sans);overflow:hidden;user-select:none}
+.bar{display:flex;align-items:center;gap:12px;height:30px;padding:0 10px;border-bottom:1px solid var(--rule);font-size:12px;color:var(--muted)}
+.bar b{color:var(--ink);font-size:13px}
+.bar .sp{flex:1}
+.bar button{background:transparent;border:1px solid var(--rule);color:var(--muted);border-radius:6px;height:22px;padding:0 8px;cursor:pointer;font:12px var(--sans)}
+.bar button:hover{color:var(--ink);border-color:rgba(255,255,255,.25)}
+.board{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:6px 8px;height:calc(100% - 30px);overflow:auto}
+.team{display:flex;flex-direction:column;gap:4px;min-width:0}
+.team h4{margin:0;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--muted)}
+.team h4 i{width:8px;height:8px;border-radius:2px;background:var(--ally)}
+.team.enemy h4 i{background:var(--enemy)}
+.team h4 span{margin-left:auto;font:11px var(--mono)}
+.p{display:grid;grid-template-columns:40px minmax(0,1fr) 118px;gap:8px;align-items:center;background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:4px 7px;min-height:0;position:relative}
+.p.me{border-color:var(--gold)}
+.p .ic{position:relative;width:40px;height:40px;cursor:pointer}
+.p .ic img{width:40px;height:40px;border-radius:7px;display:block}
+.p .ic .ms{position:absolute;bottom:-4px;right:-4px;font:700 9px/14px var(--mono);background:#2a1f05;color:var(--gold);border:1px solid var(--gold);border-radius:4px;padding:0 3px}
+.p .ic .lv{position:absolute;top:-4px;left:-4px;font:700 9px/14px var(--mono);background:#111;border:1px solid var(--rule);border-radius:4px;padding:0 3px}
+.p .mid{min-width:0}
+.p .l1{display:flex;align-items:baseline;gap:6px;min-width:0}
+.p .nm{font-weight:700;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p .rk{font-size:11px;color:var(--gold);white-space:nowrap}
+.p .pm{font:700 10px/14px var(--mono);border-radius:4px;padding:0 4px;color:#111;background:var(--gold);white-space:nowrap}
+.p .pm.g2{background:#b98ef0}.p .pm.g3{background:#6fd3c2}
+.p .l2{display:flex;gap:8px;color:var(--muted);font:11px var(--mono);margin-top:1px;white-space:nowrap;overflow:hidden}
+.p .l2 b{color:var(--ink)}
+.strip{display:flex;gap:3px;margin-top:3px}
+.strip span{display:flex;align-items:center;gap:2px;border-radius:4px;padding:1px 3px 1px 1px;font:10px/14px var(--mono);background:rgba(224,96,90,.18);color:#f3b2ae}
+.strip span.w{background:rgba(79,143,224,.2);color:#b6d0f5}
+.strip img{width:14px;height:14px;border-radius:3px}
+.tags{display:flex;gap:3px;flex-wrap:wrap;margin-top:3px;max-height:16px;overflow:hidden}
+.tag{font-size:10.5px;line-height:15px;border-radius:999px;padding:0 6px;background:rgba(255,255,255,.07);color:var(--muted)}
+.tag.good{color:var(--good);background:rgba(95,195,139,.12)}.tag.bad{color:var(--bad);background:rgba(224,96,90,.13)}
+.tag.warn{color:var(--gold);background:rgba(227,176,75,.13)}.tag.info{color:var(--info);background:rgba(127,180,214,.12)}
+.tag.note{color:#111;background:var(--gold)}
+.right{display:flex;flex-direction:column;gap:3px;align-items:stretch;font:11px var(--mono)}
+.score{display:flex;align-items:center;gap:5px}
+.score .track{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden}
+.score .fill{height:100%;border-radius:3px;background:var(--muted)}
+.score .fill.hi{background:var(--good)}.score .fill.lo{background:var(--bad)}
+.score b{min-width:38px;text-align:right}
+.live{display:flex;justify-content:space-between;color:var(--muted)}
+.live b{color:var(--ink)}
+.live .dead{color:var(--bad)}
+.empty{display:grid;place-items:center;height:calc(100% - 30px);color:var(--muted);text-align:center;padding:20px;font-size:13px}
+.abil{position:fixed;inset:30px 8px 8px;background:#0b0f11;border:1px solid var(--rule);border-radius:10px;padding:10px 12px;overflow:auto;display:none}
+.abil.on{display:block}
+.abil h3{margin:0 0 8px;font-size:14px;display:flex;gap:10px;align-items:center}
+.abil h3 button{margin-left:auto}
+.ab{display:grid;grid-template-columns:34px 1fr;gap:8px;padding:6px 0;border-bottom:1px solid var(--rule)}
+.ab img{width:34px;height:34px;border-radius:6px}
+.ab .t{font-weight:700}.ab .t em{font:700 11px var(--mono);color:var(--gold);font-style:normal;margin-right:6px}
+.ab .n{font:11px var(--mono);color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
+.ab .n b{color:var(--ink)}
+.ab .d{color:var(--muted);font-size:11.5px;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="bar"><b>RiftLens</b><span id="info">等待对局…</span><span class="sp"></span><span>Shift+Tab 显示 / 隐藏 · 点英雄头像看技能冷却 · 拖动标题栏移动</span><button type="button" id="planbtn">这把怎么打</button><button type="button" id="hide">隐藏</button></div>
+<div id="root" class="empty">进入游戏后显示十名玩家的段位、近期战绩和侦察分。</div>
+<div class="abil" id="abil"></div>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const icon = id => id ? `/api/client/asset?path=/lol-game-data/assets/v1/champion-icons/${id}.png` : '';
+const POS = {TOP:'上', JUNGLE:'野', MIDDLE:'中', BOTTOM:'下', UTILITY:'辅'};
+let S = null, ver = -1;
+
+function rows(){
+  const ig = S && S.in_game;
+  if (ig && ig.teams && ig.teams.length) {
+    const mine = ig.my_team === 1 ? 1 : 0;
+    return {ally: ig.teams[mine] || [], enemy: ig.teams[1 - mine] || [], live: ig.live, info: `${ig.queue || ''} · 对局 ${ig.game_id || ''}`};
+  }
+  const cs = S && S.champ_select;
+  if (cs) return {ally: cs.my_team, enemy: [], live: null, info: '英雄选择中（看不到对方战绩）'};
+  return null;
+}
+function card(p, maxScore, live){
+  const c = p.card || {}, L = live && live.players && live.players[p.puuid];
+  const name = c.name || p.name || '隐藏的玩家';
+  const rank = c.solo ? `${c.solo.text} ${c.solo.lp}` : (c.flex ? '灵活 ' + c.flex.text : (c.games != null ? '未定级' : ''));
+  const pct = c.score && maxScore ? Math.round(c.score / maxScore * 100) : 0;
+  const recent = (c.recent || []).slice(0, 6).map(g => `<span class="${g.win ? 'w' : ''}" title="${esc(g.champion + ' ' + g.queue)}">${g.champion_id ? `<img src="${icon(g.champion_id)}" alt="">` : ''}${esc(g.kda)}</span>`).join('');
+  const tags = [];
+  if (p.note && (p.note.note || (p.note.tags || []).length)) tags.push(`<span class="tag note" title="${esc(p.note.note)}">备注：${esc((p.note.tags || []).concat(p.note.note ? [p.note.note] : []).join(' · ').slice(0, 18))}</span>`);
+  (c.tags || []).slice(0, 4).forEach(t => tags.push(`<span class="tag ${t.tone}" title="${esc(t.desc || '')}">${esc(t.text)}</span>`));
+  const m = p.mastery && p.mastery.level ? `<span class="ms" title="英雄熟练度 ${(p.mastery.points || 0).toLocaleString()} 点">M${p.mastery.level}</span>` : '';
+  const lv = L && L.level ? `<span class="lv">${L.level}</span>` : '';
+  let body;
+  if (!p.puuid) body = '<div class="l2">看不到这名玩家的信息</div>';
+  else if (c.loading || !p.card) body = '<div class="l2">查询战绩中…</div>';
+  else if (c.error) body = `<div class="l2">查询失败</div>`;
+  else body = `<div class="l2">${c.games ? `<span>近${c.games}局 <b>${Math.round(c.win_rate * 100)}%</b></span><span>KDA <b>${c.kda}</b></span>` : '<span>没有近期对局</span>'}${c.level ? `<span>Lv${c.level}</span>` : ''}</div>
+    ${recent ? `<div class="strip">${recent}</div>` : ''}${tags.length ? `<div class="tags">${tags.join('')}</div>` : ''}`;
+  const liveLine = L ? `<div class="live"><span><b>${L.k}/${L.d}/${L.a}</b></span><span>${L.cs} 刀</span></div>
+    <div class="live"><span>装备 <b>${(L.gold / 1000).toFixed(1)}k</b></span>${L.dead ? `<span class="dead">复活 ${L.respawn}s</span>` : ''}</div>` : '';
+  return `<div class="p${p.me ? ' me' : ''}">
+    <div class="ic" data-champ="${p.champion_id || ''}" title="${esc(p.champion || '')} · 点击看技能">${p.champion_id ? `<img src="${icon(p.champion_id)}" alt="">` : ''}${m}${lv}</div>
+    <div class="mid"><div class="l1"><span class="nm" title="${esc(name)}">${esc(name)}</span>${POS[p.position] ? `<span class="rk" style="color:var(--muted)">${POS[p.position]}</span>` : ''}<span class="rk" title="${esc(c.solo ? [c.solo.highest && '本赛季最高 ' + c.solo.highest, c.solo.prev_highest && '上赛季最高 ' + c.solo.prev_highest].filter(Boolean).join(' · ') : '')}">${esc(rank)}</span>${c.solo && c.solo.prev_highest ? `<span class="rk" style="color:var(--muted)">上季 ${esc(c.solo.prev_highest)}</span>` : ''}${p.premade ? `<span class="pm g${p.premade}" title="和同队的人最近一起打过至少 2 局">开黑${p.premade}</span>` : ''}</div>${body}</div>
+    <div class="right">${c.score != null ? `<div class="score" title="侦察分：只适合和本局其他 9 人比较"><span class="track"><span class="fill ${pct >= 66 ? 'hi' : pct <= 33 ? 'lo' : ''}" style="width:${pct}%"></span></span><b>${c.score.toLocaleString()}</b></div>` : ''}${liveLine}</div>
+  </div>`;
+}
+function summary(team, live){
+  const ps = team.map(p => p.card).filter(c => c && c.games);
+  const g = ps.reduce((a, c) => a + c.games, 0), w = ps.reduce((a, c) => a + c.wins, 0);
+  const gold = live && live.players ? team.reduce((a, p) => a + ((live.players[p.puuid] || {}).gold || 0), 0) : 0;
+  return (g ? `近期 ${w}/${g} 胜` : '') + (gold ? ` · 装备 ${(gold / 1000).toFixed(1)}k` : '');
+}
+function render(){
+  const r = rows();
+  if (!r) { $('root').className = 'empty'; $('root').innerHTML = S && S.connected ? `客户端：${esc(S.phase_text)}。进入游戏后这里显示十名玩家的段位、近期战绩和侦察分。` : '没有连接到英雄联盟客户端。'; $('info').textContent = ''; return; }
+  const all = [...r.ally, ...r.enemy];
+  const maxScore = Math.max(0, ...all.map(p => (p.card && p.card.score) || 0));
+  const t = r.live && r.live.time ? ` · ${Math.floor(r.live.time / 60)}:${String(r.live.time % 60).padStart(2, '0')}` : '';
+  $('info').textContent = r.info + t;
+  $('root').className = 'board';
+  $('root').innerHTML = `<div class="team"><h4><i></i>我方<span>${summary(r.ally, r.live)}</span></h4>${r.ally.map(p => card(p, maxScore, r.live)).join('')}</div>
+    <div class="team enemy"><h4><i></i>敌方<span>${summary(r.enemy, r.live)}</span></h4>${r.enemy.map(p => card(p, maxScore, r.live)).join('') || '<div class="empty" style="height:auto">进入游戏后显示</div>'}</div>`;
+}
+async function poll(){
+  for (;;) {
+    try { const res = await fetch('/api/client/state?since=' + ver); S = await res.json(); ver = S.version; render(); if (planOpen) planPanel(); }
+    catch (e) { await new Promise(r => setTimeout(r, 3000)); }
+  }
+}
+document.addEventListener('click', async e => {
+  const ic = e.target.closest('[data-champ]');
+  if (ic && ic.dataset.champ) {
+    planOpen = false;
+    const box = $('abil'); box.className = 'abil on'; box.innerHTML = '<p>读取技能…</p>';
+    try {
+      const r = await fetch('/api/tencent/abilities/' + ic.dataset.champ); const d = await r.json();
+      if (!r.ok) throw new Error(d.detail || r.status);
+      box.innerHTML = `<h3>${esc(d.name)} <small style="color:var(--muted);font-weight:400">${esc(d.title)}</small><button type="button" data-close>关闭</button></h3>` + d.abilities.map(a => `<div class="ab"><img src="${esc(a.icon)}" alt=""><div>
+        <div class="t"><em>${a.slot}</em>${esc(a.name)}</div>
+        <div class="n">${a.cooldown ? `<span>冷却 <b>${esc(a.cooldown)}</b> 秒</span>` : ''}${a.cost && a.cost !== '0' ? `<span>消耗 <b>${esc(a.cost)}</b></span>` : ''}${a.range ? `<span>距离 <b>${esc(a.range)}</b></span>` : ''}</div>
+        <div class="d">${esc(a.description)}</div></div></div>`).join('') + '<p style="color:var(--muted)">数据来自国服 lol.qq.com，冷却是未计技能急速的基础值。</p>';
+    } catch (err) { box.innerHTML = `<p>读取失败：${esc(err.message)}</p><button type="button" data-close>关闭</button>`; }
+    return;
+  }
+  if (e.target.closest('[data-close]')) { $('abil').className = 'abil'; planOpen = false; }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('abil').className = 'abil'; });
+$('hide').addEventListener('click', () => fetch('/api/overlay/toggle', {method:'POST'}));
+function mini(text){
+  return esc(text).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').split('\n').map(l => l.replace(/^#+\s*(.*)$/, '<b>$1</b>').replace(/^[-*]\s+/, '• ')).join('<br>');
+}
+function planPanel(){
+  const p = S && S.plan, box = $('abil');
+  if (!p) { box.innerHTML = '<h3>这把怎么打<button type="button" data-close>关闭</button></h3><p>锁定英雄后生成。</p>'; return; }
+  const b = p.build, items = xs => xs.map(i => `<img src="${esc(i.icon)}" title="${esc(i.name)}" alt="" style="width:26px;height:26px;border-radius:5px">`).join('');
+  box.innerHTML = `<h3>这把怎么打 <small style="color:var(--muted);font-weight:400">${p.stage === 'game' ? '加载界面生成' : '选人阶段生成'}</small><button type="button" data-close>关闭</button></h3>
+    ${p.tips.map(t => `<div style="padding:3px 0"><span class="tag info">${esc(t.k)}</span> ${esc(t.t)}</div>`).join('')}
+    ${p.ai ? `<div style="border-top:1px solid var(--rule);margin-top:8px;padding-top:8px;line-height:1.6">${mini(p.ai)}</div>` : p.ai_status === 'running' ? '<p style="color:var(--muted)">AI 正在写计划…</p>' : ''}
+    <div style="border-top:1px solid var(--rule);margin-top:8px;padding-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">出装：${items(b.core)} ${items(b.boots.slice(0, 1))} ${b.adjust.length ? '针对：' + items(b.adjust.map(a => a.item)) : ''}</div>`;
+}
+let planOpen = false;
+$('planbtn').addEventListener('click', () => { planOpen = true; $('abil').className = 'abil on'; planPanel(); });
+document.querySelector('.bar').classList.add('pywebview-drag-region');
+poll();
+</script>
+</body>
+</html>

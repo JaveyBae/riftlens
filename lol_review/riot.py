@@ -15,7 +15,7 @@ from urllib.parse import quote
 import requests
 
 ROOT = Path(__file__).resolve().parent.parent
-CACHE = ROOT / "cache"  # public match data, safe to share between state dirs
+CACHE = Path(os.environ.get("RIFTLENS_CACHE_DIR", ROOT / "cache"))  # public match data, safe to share between state dirs
 # Per-user state (database, traces, mailbox, saved key). Override to run an isolated demo.
 STATE = Path(os.environ.get("RIFTLENS_STATE_DIR", ROOT)).resolve()
 KEY_FILE = STATE / "data" / "riot_api_key"
@@ -31,7 +31,8 @@ def saved_key() -> str:
 def save_key(key: str) -> None:
     KEY_FILE.parent.mkdir(parents=True, exist_ok=True)
     KEY_FILE.write_text(key.strip())
-    KEY_FILE.chmod(0o600)
+    if os.name != "nt":
+        KEY_FILE.chmod(0o600)
 
 
 def key_status() -> dict:
@@ -44,13 +45,13 @@ DDRAGON = "https://ddragon.leagueoflegends.com"
 
 
 def load_env() -> None:
-    env = ROOT / ".env"
-    if not env.exists():
-        return
-    for line in env.read_text().splitlines():
-        if "=" in line and not line.lstrip().startswith("#"):
-            k, v = line.split("=", 1)
-            os.environ.setdefault(k.strip(), v.strip())
+    for env in dict.fromkeys((STATE / ".env", ROOT / ".env")):  # the desktop app keeps .env next to its data
+        if not env.exists():
+            continue
+        for line in env.read_text(encoding="utf-8").splitlines():
+            if "=" in line and not line.lstrip().startswith("#"):
+                k, v = line.split("=", 1)
+                os.environ.setdefault(k.strip(), v.strip())
 
 
 class RiotError(RuntimeError):
@@ -64,7 +65,7 @@ class Riot:
         self.platform = os.environ.get("RIOT_PLATFORM", "euw1")
         self.region = os.environ.get("RIOT_REGION", "europe")
         self.session = requests.Session()
-        CACHE.mkdir(exist_ok=True)
+        CACHE.mkdir(parents=True, exist_ok=True)
 
     # ---- low level -------------------------------------------------------
     tracer = None  # set to a Tracer to record every request
@@ -91,7 +92,7 @@ class Riot:
         if path and path.exists() and (ttl is None or time.time() - path.stat().st_mtime < ttl):
             if self.tracer:
                 self.tracer.api(url, cache_hit=True, status=None, latency_ms=0)
-            return json.loads(path.read_text())
+            return json.loads(path.read_text(encoding="utf-8"))
         if auth:
             self._throttle()
         started = time.perf_counter()
@@ -118,7 +119,7 @@ class Riot:
         r.raise_for_status()
         data = r.json()
         if path:
-            path.write_text(json.dumps(data))
+            path.write_text(json.dumps(data), encoding="utf-8")
         return data
 
     # ---- endpoints -------------------------------------------------------

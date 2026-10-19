@@ -19,7 +19,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
+import sys
+import threading
 import time
 from pathlib import Path
 
@@ -27,20 +30,42 @@ from web import bridge
 
 ROOT = Path(__file__).resolve().parent.parent
 USAGE_LOG = bridge.BOX / "usage.jsonl"
-ALLOWED = "Bash(.venv/bin/python -m web.bridge:*)"
+if getattr(sys, "frozen", False):  # the desktop exe answers `RiftLens.exe bridge ...` itself
+    PY = Path(sys.executable).as_posix()
+    BRIDGE = f"{PY} bridge"
+    BRIDGE_ARGV = [sys.executable, "bridge"]
+    WORKDIR = Path(os.environ.get("RIFTLENS_STATE_DIR") or Path.cwd())
+else:
+    PY = ".venv/Scripts/python" if os.name == "nt" else ".venv/bin/python"  # Claude Code runs Git Bash on Windows
+    BRIDGE = f"{PY} -m web.bridge"
+    BRIDGE_ARGV = [PY, "-m", "web.bridge"]
+    WORKDIR = ROOT
+ALLOWED = f"Bash({BRIDGE}:*)"
+NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)  # don't flash console windows from the desktop app
+
+
+def claude_path() -> str | None:
+    """The Claude Code executable: on PATH, or the default native install location."""
+    found = shutil.which("claude")
+    if found:
+        return found
+    for p in (Path.home() / ".local" / "bin" / "claude.exe", Path.home() / ".local" / "bin" / "claude"):
+        if p.exists():
+            return str(p)
+    return None
 
 SYSTEM = """你是英雄联盟对局复盘助手，只能根据工具返回的数据说话。
 
 你有三类工具：
 - WebSearch / WebFetch：只用于知识类问题（对位、出装、打法），见下方"知识类问题"；
 - 在 Bash 里运行下列命令（每次只运行一条命令，不要用 && 或管道组合，不要运行其他任何命令）：
-  .venv/bin/python -m web.bridge tool {mid} <工具名> '<JSON 参数>'
-  .venv/bin/python -m web.bridge note {mid} "<给用户看的进度说明>"
+  {bridge} tool {mid} <工具名> '<JSON 参数>'
+  {bridge} note {mid} "<给用户看的进度说明>"
 长期记忆只记关于用户本人的特点：只有分析的是用户自己的账号（长期记忆里列出的 Riot ID）时，才可以记；分析别人的账号时绝对不要记。
 发现值得长期记住的特点时（例如"输局主要是死亡多""主玩打野、英雄池分散"），用下面的命令记下，一次一条、每次回答最多 2 条，不要记一次性的对局细节：
-  .venv/bin/python -m web.bridge remember {mid} "<一句话特点>"
+  {bridge} remember {mid} "<一句话特点>"
 回答写好后，用下面这条命令提交（必须执行，否则用户看不到回答）：
-  .venv/bin/python -m web.bridge answer {mid} - <<'EOF'
+  {bridge} answer {mid} - <<'EOF'
   <Markdown 回答>
   EOF
 
@@ -48,12 +73,13 @@ SYSTEM = """你是英雄联盟对局复盘助手，只能根据工具返回的�
 {tools}
 
 工作方式：
-1. 找人：find_player → list_recent_matches。队列 1700/1710/1750 等是斗魂竞技场等非峡谷模式，工具不适用，改用最近一局峡谷对局并说明。
+1. 找人：用户自己（"我""刚打完这局"）或 LCU_ 开头的对局 id → client_recent_matches（从本机客户端读取，任何服务器包括国服都能用）；查别人的 Riot ID → find_player → list_recent_matches。队列 1700/1710/1750 等是斗魂竞技场等非峡谷模式，工具不适用，改用最近一局峡谷对局并说明。
 2. 单局复盘：get_match_summary、turning_points，再按需深挖（死亡多 → analyze_deaths；打野 → jungle_stats；团战 → segment_fights；对线 → lane_phase_stats；失误 → detect_mistakes）。
-3. 多局趋势（"最近几局""整体状态"）：recent_form。
+3. 正在进行的对局（"这把怎么打""我该出什么""对面谁最弱"）：先用 client_game_plan，再按需用 opgg_champion、champion_info 补充。
+3b. 多局趋势（"最近几局""整体状态"）：recent_form；用户自己的账号优先用 client_recent_form。
 4. 说到"单杀""某人参与"之类，先用 kill_log 核对助攻名单。
 5. 知识类问题（例如"谁打鳄鱼好打""亚索怎么打鳄鱼"）：
-   a. 先用 champion_info 查双方英雄的官方技能和数值（这是事实，可以直接引用）；
+   a. 先用 champion_info 查双方英雄的官方技能和数值（这是事实，可以直接引用），再用 opgg_champion 查 OP.GG 的胜率、出装、符文和对位胜率（统计数据，注明 OP.GG 和版本）；
    b. 再用 WebSearch 查：数据网站的对位统计（如 lolalytics、u.gg、op.gg 的 counters 页面）和玩家讨论（贴吧、NGA、Reddit、知乎、攻略），搜索 4–6 次、读 2–4 个页面即可，中英文都搜；
    c. 每个网页来源都要看版本号和日期，当前版本是 16.20；明显过时（相差 3 个以上大版本或一年以上）的数据要么不用，要么明确标注"旧版本"；
    d. 不要批量抓取同一网站，读不到（需要登录、反爬）就用搜索摘要，并说明。
@@ -68,7 +94,8 @@ SYSTEM = """你是英雄联盟对局复盘助手，只能根据工具返回的�
 
 
 def tool_catalog() -> str:
-    return subprocess.run([".venv/bin/python", "-m", "web.bridge", "tools"], cwd=ROOT, capture_output=True, text=True).stdout
+    return subprocess.run([*BRIDGE_ARGV, "tools"], cwd=WORKDIR, capture_output=True, text=True, encoding="utf-8",
+                          errors="replace", creationflags=NO_WINDOW).stdout
 
 
 def handle(msg: dict, model: str | None, max_turns: int, catalog: str) -> dict:
@@ -79,8 +106,8 @@ def handle(msg: dict, model: str | None, max_turns: int, catalog: str) -> dict:
               (f"关于这位用户的长期记忆：\n{memory}\n\n" if memory else "") +
               (f"之前的对话（供理解上下文）：\n{history}\n\n" if history else "") +
               f"用户的新问题：{msg['text']}")
-    cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose", "--no-session-persistence",
-           "--system-prompt", SYSTEM.format(mid=mid, tools=catalog),
+    cmd = [claude_path() or "claude", "-p", prompt, "--output-format", "stream-json", "--verbose", "--no-session-persistence",
+           "--system-prompt", SYSTEM.format(mid=mid, tools=catalog, bridge=BRIDGE),
            "--tools", "Bash,WebSearch,WebFetch", "--allowedTools", ALLOWED, "WebSearch", "WebFetch",
            "--max-turns", str(max_turns)]
     if model:
@@ -88,8 +115,8 @@ def handle(msg: dict, model: str | None, max_turns: int, catalog: str) -> dict:
     bridge.emit(mid, "note", {"text": "已启动独立的 Claude Code 会话处理这条消息（不含任何历史对话）"})
     t0 = time.time()
     env = {**os.environ, "BRIDGE_DEFER_DONE": "1"}
-    proc = subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
-                            text=True, env=env)
+    proc = subprocess.Popen(cmd, cwd=WORKDIR, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
+                            text=True, encoding="utf-8", errors="replace", env=env, creationflags=NO_WINDOW)
     res: dict = {}
     web_calls: dict[str, str] = {}  # tool_use id -> display name, to label results
     for line in proc.stdout:
@@ -151,11 +178,7 @@ def handle(msg: dict, model: str | None, max_turns: int, catalog: str) -> dict:
     return record
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--model", default=None, help="e.g. sonnet, opus, haiku; default = Claude Code default")
-    ap.add_argument("--max-turns", type=int, default=30)
-    args = ap.parse_args()
+def run(model: str | None = None, max_turns: int = 30) -> None:
     catalog = tool_catalog()
     seen: set[str] = {m["id"] for m in bridge.pending()}  # leave messages that were waiting before start
     print(f"worker ready; skipping {len(seen)} older pending message(s)", flush=True)
@@ -165,11 +188,32 @@ def main() -> None:
                 continue
             seen.add(msg["id"])
             print(f"handling {msg['id']}: {msg['text'][:60]}", flush=True)
-            rec = handle(msg, args.model, args.max_turns, catalog)
+            try:
+                rec = handle(msg, model, max_turns, catalog)
+            except Exception as e:  # one failed message must not stop the worker
+                bridge.emit(msg["id"], "answer", {"text": f"Claude Code 处理失败：{type(e).__name__}: {e}"})
+                bridge.emit(msg["id"], "done", {"steps": 0})
+                print(f"failed {msg['id']}: {e}", flush=True)
+                continue
             print(f"done {msg['id']}: {rec['turns']} turns, input {rec['total_input_tokens']:,} "
                   f"(cache read {rec['cache_read_tokens']:,}), output {rec['output_tokens']:,}, "
                   f"${rec['cost_usd_list_price']}", flush=True)
         time.sleep(1)
+
+
+def start_background(model: str | None = None, max_turns: int = 30) -> threading.Thread:
+    """Run the worker inside this process (the desktop app does this instead of a second terminal)."""
+    t = threading.Thread(target=run, args=(model, max_turns), name="claude-worker", daemon=True)
+    t.start()
+    return t
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--model", default=None, help="e.g. sonnet, opus, haiku; default = Claude Code default")
+    ap.add_argument("--max-turns", type=int, default=30)
+    args = ap.parse_args()
+    run(args.model, args.max_turns)
 
 
 if __name__ == "__main__":
